@@ -4,6 +4,7 @@ import type { Lang } from '@/lib/i18n';
 import { useTranslations } from '@/lib/i18n';
 import { fromPrice, formatIDR } from '@/lib/format';
 import { getRoomAvailability } from '@/lib/queries';
+import { cdnImage, cdnSrcset } from '@/lib/img';
 
 interface Props {
   room: RoomType;
@@ -15,7 +16,10 @@ const q = lang === 'en' ? '?lang=en' : '';
 
 const name = lang === 'id' ? (room.name_id ?? room.name) : room.name;
 const desc = lang === 'id' ? (room.description_id ?? room.description) : room.description;
-const cover = room.images?.[0];
+const coverSrc = room.images?.[0];
+const cover = coverSrc ? cdnImage(coverSrc, 640) : undefined;
+// Cards render ~1 col (full-width ≤640) → 3 cols (~400px) depending on viewport.
+const coverSrcset = coverSrc ? cdnSrcset(coverSrc, [320, 480, 640], 80) : undefined;
 const price = fromPrice(room);
 
 // Fetch availability tonight (Jakarta UTC+7)
@@ -41,6 +45,8 @@ const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
       cover ? (
         <img
           src={cover}
+          srcset={coverSrcset}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           alt={name}
           loading="lazy"
           decoding="async"

@@ -7,6 +7,7 @@ import SemarangMap from '@/components/SemarangMap.tsx';
 import { getLangFromUrl, useTranslations } from '@/lib/i18n';
 import { getRoomTypes } from '@/lib/queries';
 import { HOTEL } from '@/lib/hotel';
+import { cdnImage } from '@/lib/img';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
@@ -14,8 +15,9 @@ const q = lang === 'en' ? '?lang=en' : '';
 
 const rooms = await getRoomTypes();
 const featured = rooms.filter((r) => r.featured).slice(0, 3);
-const heroImg = rooms.find((r) => r.images?.length)?.images[0]
+const heroSrc = rooms.find((r) => r.images?.length)?.images[0]
   ?? 'https://h-img1.cloudbeds.com/uploads/171276/9~~69b7c88371551.jpg';
+const heroImg = cdnImage(heroSrc, 1920, 82);
 
 const packages = [
   { key: 'half_day', icon: '◐' },
