@@ -21,7 +21,7 @@ const price = fromPrice(room);
 <article
   class="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
 >
-  <a href={`/rooms/${room.slug}${q}`} class:list={["relative block aspect-[4/3] overflow-hidden bg-muted", cover && "animate-pulse"]}>
+  <a href={`/rooms/${room.slug}${q}`} class:list={["relative block aspect-[4/3] overflow-hidden bg-muted", cover && "animate-pulse"]} aria-label={`View ${name}`}>
     {
       cover ? (
         <img
@@ -29,6 +29,8 @@ const price = fromPrice(room);
           alt={name}
           loading="lazy"
           decoding="async"
+          width="600"
+          height="450"
           onload="this.classList.remove('opacity-0'); this.parentElement?.classList.remove('animate-pulse');"
           class="size-full object-cover opacity-0 transition-[opacity,transform] duration-500 group-hover:scale-105"
         />
