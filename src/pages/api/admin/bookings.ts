@@ -45,15 +45,45 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
 
   // Use service-role for the write + log (bypasses RLS; we've already authorised).
   const svc = await createSupabaseAdminClient();
-  const { data, error } = await svc
-    .from('bookings')
-    .update(patch as Database['public']['Tables']['bookings']['Update'])
-    .eq('id', body.id)
-    .select('reference, status')
-    .single();
 
-  if (error || !data) {
-    return new Response(JSON.stringify({ error: error?.message ?? 'update failed' }), { status: 500 });
+  // Confirming consumes inventory — route through the atomic RPC so two
+  // simultaneous confirms for the same room_type can't oversell (advisory lock
+  // + re-count + status flip in one tx). Other fields (room_id/notes) and other
+  // status changes use the plain update below.
+  if (body.status === 'confirmed') {
+    const { error: rpcErr } = await svc.rpc('confirm_booking', { p_booking_id: body.id });
+    if (rpcErr) {
+      const full = rpcErr.message.includes('ROOM_FULL');
+      return new Response(
+        JSON.stringify({ error: full ? 'Confirming would oversell this room type for these dates.' : rpcErr.message }),
+        { status: full ? 409 : 500 },
+      );
+    }
+    // confirm_booking already set status + confirmed_at; drop them so the
+    // follow-up update only carries room_id/admin_notes (if any).
+    delete patch.status;
+    delete patch.confirmed_at;
+  }
+
+  let data: { reference: string; status: string } | null = null;
+  if (Object.keys(patch).length > 0) {
+    const res = await svc
+      .from('bookings')
+      .update(patch as Database['public']['Tables']['bookings']['Update'])
+      .eq('id', body.id)
+      .select('reference, status')
+      .single();
+    if (res.error || !res.data) {
+      return new Response(JSON.stringify({ error: res.error?.message ?? 'update failed' }), { status: 500 });
+    }
+    data = res.data;
+  } else {
+    // Only a confirm happened — fetch the row for the response/log.
+    const res = await svc.from('bookings').select('reference, status').eq('id', body.id).single();
+    if (res.error || !res.data) {
+      return new Response(JSON.stringify({ error: res.error?.message ?? 'fetch failed' }), { status: 500 });
+    }
+    data = res.data;
   }
 
   await svc.from('activity_logs').insert({

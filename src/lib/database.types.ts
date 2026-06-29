@@ -151,6 +151,10 @@ export interface Database {
         Args: { p_slug: string; p_check_in: string; p_check_out: string };
         Returns: { total: number; booked: number; available: number }[];
       };
+      confirm_booking: {
+        Args: { p_booking_id: string };
+        Returns: Booking;
+      };
     };
     Enums: {
       booking_status: BookingStatus;
