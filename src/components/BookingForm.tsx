@@ -77,14 +77,23 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
     }
   }, [availablePackages, pkg]);
 
-  // Normalise dates on package switch: half_day → single day (out = in);
-  // overnight → ensure out > in. Fixes the stale/range-into-single-day bugs.
+  // Period length per package: weekly = 7-day blocks, monthly = 30-day blocks,
+  // daily = free range (1), half_day = same day (0). Drives calendar snapping.
+  const stepDays = pkg === 'weekly' ? 7 : pkg === 'monthly' ? 30 : 1;
+
+  // Normalise dates on package switch so check-out always matches what's charged:
+  // half_day → same day; weekly/monthly → snap to one whole period from check-in;
+  // daily → ensure at least one night. Fixes stale/mismatched-duration bugs.
   function changePackage(next: StayPackage) {
     setPkg(next);
     if (next === 'half_day') {
       setCheckOut(checkIn);
+    } else if (next === 'weekly') {
+      setCheckOut(todayISOfromISO(checkIn, 7));
+    } else if (next === 'monthly') {
+      setCheckOut(todayISOfromISO(checkIn, 30));
     } else if (checkOut <= checkIn) {
-      // Overnight needs at least one night.
+      // Daily needs at least one night.
       setCheckOut(todayISOfromISO(checkIn, 1));
     }
   }
@@ -150,8 +159,12 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
   const inputCls =
     'w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20';
   const stepCls = 'mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
-  const fmtDay = (iso: string) =>
-    new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(iso + 'T12:00:00'));
+  const fmtDay = (iso: string) => {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+  };
 
   return (
     <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_340px]">
@@ -206,6 +219,7 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
               checkIn={checkIn}
               checkOut={isHalfDay ? '' : checkOut}
               singleMode={isHalfDay}
+              stepDays={stepDays}
               onChange={(inIso, outIso) => {
                 setCheckIn(inIso);
                 setCheckOut(isHalfDay ? inIso : outIso);

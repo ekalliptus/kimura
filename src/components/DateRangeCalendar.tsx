@@ -9,6 +9,19 @@ interface Props {
   locale: 'id' | 'en';
   /** Single-day selection (half-day stays): each click sets check-in only. */
   singleMode?: boolean;
+  /**
+   * Period length in days for weekly (7) / monthly (30) packages. When > 1 the
+   * check-out always snaps to a whole-period boundary from check-in (never empty),
+   * so the highlighted band matches what's actually charged. Daily uses 1.
+   */
+  stepDays?: number;
+}
+
+/** ISO date offset from an ISO date, DST-safe (anchors at noon). */
+function addDaysISO(iso: string, days: number): string {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -17,7 +30,7 @@ interface Props {
  * earlier day after a check-in resets to a new check-in. A continuous range band
  * + hover preview make the selection legible. `singleMode` disables ranges.
  */
-export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange, locale, singleMode }: Props) {
+export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange, locale, singleMode, stepDays = 1 }: Props) {
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const floor = minDate ?? todayISO;
 
@@ -46,8 +59,9 @@ export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange
   const inTs = checkIn ? new Date(checkIn + 'T00:00:00').getTime() : null;
   const outTs = checkOut ? new Date(checkOut + 'T00:00:00').getTime() : null;
   const hoverTs = hoverISO ? new Date(hoverISO + 'T00:00:00').getTime() : null;
-  // Preview end: while a start is set but no end yet, follow the cursor.
-  const previewTs = !singleMode && inTs != null && outTs == null && hoverTs != null && hoverTs > inTs ? hoverTs : null;
+  // Preview end (daily only): while hovering a day after check-in, show where
+  // check-out would land. Fixed-period packages are deterministic — no preview.
+  const previewTs = !singleMode && stepDays === 1 && inTs != null && hoverTs != null && hoverTs > inTs ? hoverTs : null;
   const todayTs = new Date(todayISO + 'T00:00:00').getTime();
 
   function handleClick(dayISO: string) {
@@ -56,15 +70,21 @@ export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange
       onChange(dayISO, dayISO);
       return;
     }
-    if (inTs == null || dayTs <= inTs) {
-      onChange(dayISO, '');
+    // Fixed-period packages (weekly/monthly): a click always sets check-in and
+    // snaps check-out to one whole period later. No two-click range, so the
+    // band always reflects the charged duration and check-out is never empty.
+    if (stepDays > 1) {
+      onChange(dayISO, addDaysISO(dayISO, stepDays));
       return;
     }
-    if (outTs == null) {
+    // Daily: clicking a day after check-in sets check-out there; clicking on or
+    // before check-in (or with no check-in yet) starts a fresh 1-night range.
+    // Check-out is never empty, so downstream date parsing can't break.
+    if (inTs != null && dayTs > inTs) {
       onChange(checkIn, dayISO);
       return;
     }
-    onChange(dayTs <= inTs ? dayISO : checkIn, dayTs > inTs ? dayISO : '');
+    onChange(dayISO, addDaysISO(dayISO, 1));
   }
 
   return (
@@ -126,8 +146,9 @@ function MonthGrid({ month, floor, inTs, outTs, previewTs, todayTs, singleMode, 
     cells.push(`${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
   }
 
-  // Effective range end (real or hover preview).
-  const endTs = outTs ?? previewTs;
+  // Effective range end: the hover preview takes priority (daily mode) so the
+  // band follows the cursor; otherwise the committed check-out.
+  const endTs = previewTs ?? outTs;
 
   return (
     <div onMouseLeave={() => onHover(null)}>
