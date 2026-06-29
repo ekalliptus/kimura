@@ -205,6 +205,15 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
                 alt=""
                 loading="lazy"
                 decoding="async"
+                ref={(el) => {
+                  // React swaps src on room change; the global reveal script only
+                  // runs once, so self-reveal here. Covers the already-cached case
+                  // (complete before onLoad) too.
+                  if (el?.complete && el.naturalWidth > 0) {
+                    el.classList.remove('opacity-0');
+                    el.parentElement?.classList.remove('animate-pulse');
+                  }
+                }}
                 onLoad={(e) => {
                   e.currentTarget.classList.remove('opacity-0');
                   e.currentTarget.parentElement?.classList.remove('animate-pulse');

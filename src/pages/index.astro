@@ -43,8 +43,8 @@ const heroLines = t('hero.title').split('\n');
           decoding="async"
           width="1920"
           height="1080"
-          onload="this.classList.remove('opacity-0'); this.parentElement?.classList.remove('animate-pulse');"
-          class="size-full scale-105 object-cover opacity-0 blur-xl transition-[opacity,filter] duration-700 ease-out"
+          data-reveal
+          class="size-full object-cover opacity-0 transition-opacity duration-700 ease-out"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>

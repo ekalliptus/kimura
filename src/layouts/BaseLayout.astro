@@ -69,8 +69,40 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
         document.documentElement.classList.toggle('dark', dark);
       })();
     </script>
+
+    <!-- No-JS / pre-hydration safety net: never let a [data-reveal] image stay
+         hidden. The reveal script below removes opacity-0 once each image is
+         decoded; this guarantees visibility if that script never runs. -->
+    <noscript><style>img[data-reveal]{opacity:1!important}</style></noscript>
   </head>
   <body class="min-h-screen bg-background text-foreground">
     <slot />
+
+    <!-- Robust image reveal. Inline onload is unreliable for preloaded /
+         already-cached images (the load event can fire before the handler
+         attaches), which left the LCP hero stuck at opacity-0. This instead
+         checks img.complete first (reveal now) and falls back to load/error
+         listeners, covering lazy images that decode later too. -->
+    <script is:inline>
+      (() => {
+        const reveal = (img) => {
+          img.classList.remove('opacity-0', 'blur-xl', 'blur-lg', 'blur-md');
+          const p = img.parentElement;
+          if (p) p.classList.remove('animate-pulse');
+        };
+        const wire = (img) => {
+          if (img.complete && img.naturalWidth > 0) { reveal(img); return; }
+          img.addEventListener('load', () => reveal(img), { once: true });
+          // Reveal on error too, so a failed transform never leaves a blank box.
+          img.addEventListener('error', () => reveal(img), { once: true });
+        };
+        const run = () => document.querySelectorAll('img[data-reveal]').forEach(wire);
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', run, { once: true });
+        } else {
+          run();
+        }
+      })();
+    </script>
   </body>
 </html>

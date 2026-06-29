@@ -52,7 +52,7 @@ const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
           decoding="async"
           width="600"
           height="450"
-          onload="this.classList.remove('opacity-0'); this.parentElement?.classList.remove('animate-pulse');"
+          data-reveal
           class="size-full object-cover opacity-0 transition-[opacity,transform] duration-500 group-hover:scale-105"
         />
       ) : (
