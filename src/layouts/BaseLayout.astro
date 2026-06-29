@@ -6,9 +6,10 @@ interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  preloadImage?: string;
 }
 
-const { title, description, ogImage } = Astro.props;
+const { title, description, ogImage, preloadImage } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 
 const fullTitle = title ? `${title} · Kimura Kostay` : 'Kimura Kostay — Semarang';
@@ -32,6 +33,11 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
     <meta name="generator" content={Astro.generator} />
     <link rel="canonical" href={canonicalUrl} />
 
+    <!-- Warm the image CDN early so the LCP hero fetch starts sooner -->
+    <link rel="preconnect" href="https://h-img1.cloudbeds.com" crossorigin />
+    <link rel="dns-prefetch" href="https://h-img1.cloudbeds.com" />
+    {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
+
     <!-- Open Graph -->
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={desc} />
@@ -47,11 +53,11 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
     <meta name="twitter:description" content={desc} />
     <meta name="twitter:image" content={image} />
 
-    <!-- Brand fonts: Shippori Mincho (display serif) + Plus Jakarta Sans (body) -->
+    <!-- Brand fonts: Shippori Mincho (display, 600/700) + Plus Jakarta Sans (body). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
