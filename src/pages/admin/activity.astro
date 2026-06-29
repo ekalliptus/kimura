@@ -2,8 +2,10 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import ConsoleLog from '@/components/admin/ConsoleLog.tsx';
 import { adminClient } from '@/lib/admin';
+import { adminLang, t as tr } from '@/lib/admin-i18n';
 import type { ActivityLog } from '@/lib/database.types';
 
+const lang = adminLang(Astro.cookies.get('admin_lang')?.value);
 const supabase = adminClient(Astro);
 const { data } = await supabase
   .from('activity_logs')
@@ -13,9 +15,7 @@ const { data } = await supabase
 const logs = (data ?? []) as ActivityLog[];
 ---
 
-<AdminLayout title="Activity Log" active="activity">
-  <p class="mb-4 text-sm text-muted-foreground">
-    Live audit trail of every booking change, room update, sign-in, and system event.
-  </p>
-  <ConsoleLog initialLogs={logs} client:load />
+<AdminLayout title={tr(lang, 'nav.activity')} active="activity" lang={lang}>
+  <p class="mb-4 text-sm text-muted-foreground">{tr(lang, 'act.intro')}</p>
+  <ConsoleLog initialLogs={logs} lang={lang} client:load />
 </AdminLayout>

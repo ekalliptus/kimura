@@ -1,24 +1,29 @@
 ---
 import '@/styles/global.css';
+import { adminLang } from '@/lib/admin-i18n';
+import { t as tr } from '@/lib/admin-i18n';
+import type { AdminLang } from '@/lib/admin-i18n';
 
 interface Props {
   title: string;
   active: 'dashboard' | 'bookings' | 'rooms' | 'activity' | 'system';
+  lang?: AdminLang;
 }
 const { title, active } = Astro.props;
+const lang = Astro.props.lang ?? adminLang(Astro.cookies.get('admin_lang')?.value);
 const user = Astro.locals.user;
 
 const nav = [
-  { key: 'dashboard', href: '/admin', label: 'Dashboard', icon: '◧' },
-  { key: 'bookings', href: '/admin/bookings', label: 'Bookings', icon: '✎' },
-  { key: 'rooms', href: '/admin/rooms', label: 'Rooms', icon: '⌂' },
-  { key: 'activity', href: '/admin/activity', label: 'Activity Log', icon: '≣' },
-  { key: 'system', href: '/admin/system', label: 'System', icon: '⚙' },
+  { key: 'dashboard', href: '/admin', labelKey: 'nav.dashboard', icon: '◧' },
+  { key: 'bookings', href: '/admin/bookings', labelKey: 'nav.bookings', icon: '✎' },
+  { key: 'rooms', href: '/admin/rooms', labelKey: 'nav.rooms', icon: '⌂' },
+  { key: 'activity', href: '/admin/activity', labelKey: 'nav.activity', icon: '≣' },
+  { key: 'system', href: '/admin/system', labelKey: 'nav.system', icon: '⚙' },
 ] as const;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -43,7 +48,7 @@ const nav = [
           <span class="flex size-8 items-center justify-center rounded-md bg-primary font-display text-base font-bold text-primary-foreground">木</span>
           <div class="leading-none">
             <div class="font-display text-sm font-semibold">Kimura</div>
-            <div class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Admin</div>
+            <div class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{tr(lang, 'layout.admin')}</div>
           </div>
         </div>
 
@@ -56,18 +61,18 @@ const nav = [
                 active === n.key ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
               ]}
             >
-              <span class="text-base">{n.icon}</span>{n.label}
+              <span class="text-base">{n.icon}</span>{tr(lang, n.labelKey)}
             </a>
           ))}
         </nav>
 
         <div class="border-t border-border p-3">
           <a href="/" class="mb-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground">
-            <span>↗</span> View site
+            <span>↗</span> {tr(lang, 'layout.view_site')}
           </a>
           <div class="rounded-md bg-secondary/50 px-3 py-2">
             <div class="truncate text-xs text-muted-foreground">{user?.email ?? '—'}</div>
-            <button id="logout-btn" class="mt-1.5 text-xs font-medium text-destructive hover:underline">Sign out</button>
+            <button id="logout-btn" class="mt-1.5 text-xs font-medium text-destructive hover:underline">{tr(lang, 'layout.sign_out')}</button>
           </div>
         </div>
       </aside>
@@ -77,13 +82,19 @@ const nav = [
         <header class="flex h-16 items-center justify-between gap-3 border-b border-border bg-card/60 px-4 backdrop-blur sm:px-6">
           <div class="flex min-w-0 items-center gap-2">
             <!-- Mobile sidebar toggle -->
-            <button id="admin-menu-toggle" class="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground transition-colors hover:bg-secondary md:hidden" aria-label="Open menu" aria-controls="admin-mobile-nav">
+            <button id="admin-menu-toggle" class="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground transition-colors hover:bg-secondary md:hidden" aria-label={tr(lang, 'layout.open_menu')} aria-controls="admin-mobile-nav">
               <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
             <h1 class="truncate font-display text-lg font-semibold">{title}</h1>
           </div>
           <div class="flex items-center gap-2">
-            <button id="admin-theme-toggle" class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary" aria-label="Toggle theme">
+            <!-- Language toggle (persists in admin_lang cookie) -->
+            <form method="POST" action="/api/admin/lang" class="contents">
+              <button type="submit" class="rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-secondary" aria-label="Toggle language">
+                {lang === 'id' ? 'EN' : 'ID'}
+              </button>
+            </form>
+            <button id="admin-theme-toggle" class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary" aria-label={tr(lang, 'layout.toggle_theme')}>
               <svg class="size-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
               <svg class="hidden size-4 dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
             </button>
@@ -95,10 +106,10 @@ const nav = [
           <div class="grid grid-cols-2 gap-1 p-3">
             {nav.map((n) => (
               <a href={n.href} class:list={['flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors', active === n.key ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/60']}>
-                <span>{n.icon}</span>{n.label}
+                <span>{n.icon}</span>{tr(lang, n.labelKey)}
               </a>
             ))}
-            <button id="admin-mobile-logout" class="col-span-2 mt-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-destructive hover:bg-secondary">Sign out</button>
+            <button id="admin-mobile-logout" class="col-span-2 mt-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-destructive hover:bg-secondary">{tr(lang, 'layout.sign_out')}</button>
           </div>
         </nav>
 

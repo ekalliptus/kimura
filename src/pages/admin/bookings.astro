@@ -2,8 +2,10 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import BookingsManager from '@/components/admin/BookingsManager.tsx';
 import { adminClient } from '@/lib/admin';
+import { adminLang, t as tr } from '@/lib/admin-i18n';
 import type { Booking } from '@/lib/database.types';
 
+const lang = adminLang(Astro.cookies.get('admin_lang')?.value);
 const supabase = adminClient(Astro);
 const focusRef = Astro.url.searchParams.get('ref') ?? undefined;
 
@@ -18,12 +20,13 @@ const roomTypes = rtRes.data ?? [];
 const rooms = roomsRes.data ?? [];
 ---
 
-<AdminLayout title="Bookings" active="bookings">
+<AdminLayout title={tr(lang, 'nav.bookings')} active="bookings" lang={lang}>
   <BookingsManager
     initialBookings={bookings}
     roomTypes={roomTypes}
     rooms={rooms}
     focusRef={focusRef}
+    lang={lang}
     client:load
   />
 </AdminLayout>

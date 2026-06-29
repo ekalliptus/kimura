@@ -2,8 +2,10 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { adminClient } from '@/lib/admin';
 import { formatIDR, formatDateTime, STATUS_LABELS } from '@/lib/format';
+import { adminLang, t as tr } from '@/lib/admin-i18n';
 import type { Booking } from '@/lib/database.types';
 
+const lang = adminLang(Astro.cookies.get('admin_lang')?.value);
 const supabase = adminClient(Astro);
 
 // Pull data in parallel.
@@ -30,10 +32,10 @@ const revenue = bookings
 const recent = bookings.slice(0, 8);
 
 const stats = [
-  { label: 'Pending', value: pending.length, hint: 'awaiting confirmation', accent: true },
-  { label: 'Checked in', value: checkedIn.length, hint: 'currently staying' },
-  { label: 'Arrivals today', value: arrivalsToday.length, hint: today },
-  { label: 'Total bookings', value: bookings.length, hint: 'all time' },
+  { label: tr(lang, 'dash.pending'), value: pending.length, hint: tr(lang, 'dash.pending_hint'), accent: true },
+  { label: tr(lang, 'dash.checked_in'), value: checkedIn.length, hint: tr(lang, 'dash.checked_in_hint') },
+  { label: tr(lang, 'dash.arrivals'), value: arrivalsToday.length, hint: today },
+  { label: tr(lang, 'dash.total'), value: bookings.length, hint: tr(lang, 'dash.all_time') },
 ];
 
 // Keep-alive freshness (green if pinged within ~4 days).
@@ -42,7 +44,7 @@ const daysSincePing = lastPing ? (Date.now() - lastPing.getTime()) / 86_400_000 
 const pingHealthy = daysSincePing != null && daysSincePing < 4;
 ---
 
-<AdminLayout title="Dashboard" active="dashboard">
+<AdminLayout title={tr(lang, 'nav.dashboard')} active="dashboard" lang={lang}>
   <!-- Stats -->
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {stats.map((s) => (
@@ -59,8 +61,8 @@ const pingHealthy = daysSincePing != null && daysSincePing < 4;
     <div class="lg:col-span-2">
       <div class="rounded-xl border border-border bg-card">
         <div class="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 class="font-display font-semibold">Recent bookings</h2>
-          <a href="/admin/bookings" class="text-sm text-accent hover:underline">View all →</a>
+          <h2 class="font-display font-semibold">{tr(lang, 'dash.recent')}</h2>
+          <a href="/admin/bookings" class="text-sm text-accent hover:underline">{tr(lang, 'dash.view_all')} →</a>
         </div>
         {recent.length > 0 ? (
           <div class="divide-y divide-border">
@@ -71,7 +73,7 @@ const pingHealthy = daysSincePing != null && daysSincePing < 4;
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
                       <span class="font-mono text-xs text-muted-foreground">{b.reference}</span>
-                      <span class:list={['rounded-full px-2 py-0.5 text-[10px] font-medium', s?.color]}>{s?.en}</span>
+                      <span class:list={['rounded-full px-2 py-0.5 text-[10px] font-medium', s?.color]}>{s?.[lang]}</span>
                     </div>
                     <div class="mt-0.5 truncate text-sm font-medium">{b.guest_name}</div>
                   </div>
@@ -84,7 +86,7 @@ const pingHealthy = daysSincePing != null && daysSincePing < 4;
             })}
           </div>
         ) : (
-          <p class="px-5 py-10 text-center text-sm text-muted-foreground">No bookings yet.</p>
+          <p class="px-5 py-10 text-center text-sm text-muted-foreground">{tr(lang, 'dash.no_bookings')}</p>
         )}
       </div>
     </div>
@@ -93,28 +95,28 @@ const pingHealthy = daysSincePing != null && daysSincePing < 4;
     <div class="space-y-6">
       <!-- Revenue -->
       <div class="rounded-xl border border-border bg-card p-5">
-        <div class="text-xs uppercase tracking-wider text-muted-foreground">Booked value</div>
+        <div class="text-xs uppercase tracking-wider text-muted-foreground">{tr(lang, 'dash.booked_value')}</div>
         <div class="mt-2 font-display text-2xl font-bold">{formatIDR(revenue)}</div>
-        <div class="mt-1 text-xs text-muted-foreground">excl. cancelled / no-show</div>
+        <div class="mt-1 text-xs text-muted-foreground">{tr(lang, 'dash.excl_cancelled')}</div>
       </div>
 
       <!-- Keep-alive status -->
       <div class="rounded-xl border border-border bg-card p-5">
         <div class="flex items-center justify-between">
-          <div class="text-xs uppercase tracking-wider text-muted-foreground">Supabase keep-alive</div>
+          <div class="text-xs uppercase tracking-wider text-muted-foreground">{tr(lang, 'dash.keepalive')}</div>
           <span class:list={['flex size-2.5 rounded-full', pingHealthy ? 'bg-green-500' : 'bg-amber-500']}></span>
         </div>
-        <div class="mt-2 text-sm font-medium">{pingHealthy ? 'Healthy' : (lastPing ? 'Stale — check cron' : 'No ping yet')}</div>
+        <div class="mt-2 text-sm font-medium">{pingHealthy ? tr(lang, 'dash.healthy') : (lastPing ? tr(lang, 'dash.stale') : tr(lang, 'dash.no_ping'))}</div>
         <div class="mt-1 text-xs text-muted-foreground">
-          {lastPing ? `Last: ${formatDateTime(keepAlive!.pinged_at)}` : 'Cron has not run.'}
+          {lastPing ? `${tr(lang, 'dash.last')}: ${formatDateTime(keepAlive!.pinged_at)}` : tr(lang, 'dash.cron_not_run')}
         </div>
-        {keepAlive && <div class="mt-1 text-xs text-muted-foreground">{keepAlive.ping_count} pings total</div>}
-        <a href="/admin/system" class="mt-3 inline-block text-xs text-accent hover:underline">System details →</a>
+        {keepAlive && <div class="mt-1 text-xs text-muted-foreground">{keepAlive.ping_count} {tr(lang, 'dash.pings_total')}</div>}
+        <a href="/admin/system" class="mt-3 inline-block text-xs text-accent hover:underline">{tr(lang, 'dash.system_details')} →</a>
       </div>
 
       <!-- Recent activity -->
       <div class="rounded-xl border border-border bg-card">
-        <div class="border-b border-border px-5 py-4"><h2 class="font-display font-semibold">Activity</h2></div>
+        <div class="border-b border-border px-5 py-4"><h2 class="font-display font-semibold">{tr(lang, 'dash.activity')}</h2></div>
         {recentLogs.length > 0 ? (
           <ul class="divide-y divide-border">
             {recentLogs.map((l) => (
@@ -125,7 +127,7 @@ const pingHealthy = daysSincePing != null && daysSincePing < 4;
             ))}
           </ul>
         ) : (
-          <p class="px-5 py-8 text-center text-sm text-muted-foreground">No activity.</p>
+          <p class="px-5 py-8 text-center text-sm text-muted-foreground">{tr(lang, 'dash.no_activity')}</p>
         )}
       </div>
     </div>

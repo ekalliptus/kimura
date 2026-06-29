@@ -1,43 +1,45 @@
 import { useMemo, useState } from 'react';
 import type { Booking, BookingStatus, Room, RoomType } from '@/lib/database.types';
 import { formatIDR, formatDate, STATUS_LABELS } from '@/lib/format';
+import type { AdminLang } from '@/lib/admin-i18n';
+import { t as tr } from '@/lib/admin-i18n';
 
 interface Props {
   initialBookings: Booking[];
   roomTypes: Pick<RoomType, 'id' | 'name'>[];
   rooms: Pick<Room, 'id' | 'room_number' | 'room_type_id'>[];
   focusRef?: string;
+  lang: AdminLang;
 }
 
-const FILTERS: { key: BookingStatus | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'pending', label: 'Pending' },
-  { key: 'confirmed', label: 'Confirmed' },
-  { key: 'checked_in', label: 'Checked in' },
-  { key: 'checked_out', label: 'Checked out' },
-  { key: 'cancelled', label: 'Cancelled' },
-];
+export default function BookingsManager({ initialBookings, roomTypes, rooms, focusRef, lang }: Props) {
+  const FILTERS: { key: BookingStatus | 'all'; label: string }[] = [
+    { key: 'all', label: tr(lang, 'bk.all') },
+    { key: 'pending', label: tr(lang, 'bk.pending') },
+    { key: 'confirmed', label: tr(lang, 'bk.confirmed') },
+    { key: 'checked_in', label: tr(lang, 'bk.checked_in') },
+    { key: 'checked_out', label: tr(lang, 'bk.checked_out') },
+    { key: 'cancelled', label: tr(lang, 'bk.cancelled') },
+  ];
 
-// Allowed next states from each status (the manual workflow).
-const NEXT: Record<BookingStatus, { status: BookingStatus; label: string; style: string }[]> = {
-  pending: [
-    { status: 'confirmed', label: 'Confirm', style: 'bg-blue-600 text-white hover:bg-blue-700' },
-    { status: 'cancelled', label: 'Cancel', style: 'border border-border hover:bg-secondary' },
-  ],
-  confirmed: [
-    { status: 'checked_in', label: 'Check in', style: 'bg-green-600 text-white hover:bg-green-700' },
-    { status: 'no_show', label: 'No-show', style: 'border border-border hover:bg-secondary' },
-    { status: 'cancelled', label: 'Cancel', style: 'border border-border hover:bg-secondary' },
-  ],
-  checked_in: [
-    { status: 'checked_out', label: 'Check out', style: 'bg-primary text-primary-foreground hover:opacity-90' },
-  ],
-  checked_out: [],
-  cancelled: [{ status: 'pending', label: 'Reopen', style: 'border border-border hover:bg-secondary' }],
-  no_show: [{ status: 'pending', label: 'Reopen', style: 'border border-border hover:bg-secondary' }],
-};
-
-export default function BookingsManager({ initialBookings, roomTypes, rooms, focusRef }: Props) {
+  // Allowed next states from each status (the manual workflow).
+  const NEXT: Record<BookingStatus, { status: BookingStatus; labelKey: 'bk.confirm' | 'bk.cancel' | 'bk.check_in' | 'bk.check_out' | 'bk.reopen' | 'bk.no_show'; toastKey: 'bk.confirm' | 'bk.cancel' | 'bk.check_in' | 'bk.check_out' | 'bk.reopen' | 'bk.no_show'; style: string }[]> = {
+    pending: [
+      { status: 'confirmed', labelKey: 'bk.confirm', toastKey: 'bk.confirm', style: 'bg-blue-600 text-white hover:bg-blue-700' },
+      { status: 'cancelled', labelKey: 'bk.cancel', toastKey: 'bk.cancel', style: 'border border-border hover:bg-secondary' },
+    ],
+    confirmed: [
+      { status: 'checked_in', labelKey: 'bk.check_in', toastKey: 'bk.check_in', style: 'bg-green-600 text-white hover:bg-green-700' },
+      { status: 'no_show', labelKey: 'bk.no_show', toastKey: 'bk.no_show', style: 'border border-border hover:bg-secondary' },
+      { status: 'cancelled', labelKey: 'bk.cancel', toastKey: 'bk.cancel', style: 'border border-border hover:bg-secondary' },
+    ],
+    checked_in: [
+      { status: 'checked_out', labelKey: 'bk.check_out', toastKey: 'bk.check_out', style: 'bg-primary text-primary-foreground hover:opacity-90' },
+    ],
+    checked_out: [],
+    cancelled: [{ status: 'pending', labelKey: 'bk.reopen', toastKey: 'bk.reopen', style: 'border border-border hover:bg-secondary' }],
+    no_show: [{ status: 'pending', labelKey: 'bk.reopen', toastKey: 'bk.reopen', style: 'border border-border hover:bg-secondary' }],
+  };
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
   const [filter, setFilter] = useState<BookingStatus | 'all'>('all');
   const [query, setQuery] = useState('');
@@ -115,7 +117,7 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search ref, name, email, phone…"
+          placeholder={tr(lang, 'bk.search')}
           className="ml-auto w-full max-w-xs rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
       </div>
@@ -125,12 +127,12 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <th className="px-4 py-3 font-medium">Ref</th>
-              <th className="px-4 py-3 font-medium">Guest</th>
-              <th className="px-4 py-3 font-medium">Room</th>
-              <th className="px-4 py-3 font-medium">Dates</th>
-              <th className="px-4 py-3 font-medium">Total</th>
-              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">{tr(lang, 'bk.col_ref')}</th>
+              <th className="px-4 py-3 font-medium">{tr(lang, 'bk.col_guest')}</th>
+              <th className="px-4 py-3 font-medium">{tr(lang, 'bk.col_room')}</th>
+              <th className="px-4 py-3 font-medium">{tr(lang, 'bk.col_dates')}</th>
+              <th className="px-4 py-3 font-medium">{tr(lang, 'bk.col_total')}</th>
+              <th className="px-4 py-3 font-medium">{tr(lang, 'bk.col_status')}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -144,13 +146,13 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
                   <td className="px-4 py-3"><div>{rtName(b.room_type_id)}</div><div className="text-xs text-muted-foreground capitalize">{b.package.replace('_', ' ')}</div></td>
                   <td className="px-4 py-3 text-xs">{formatDate(b.check_in)} → {formatDate(b.check_out)}</td>
                   <td className="px-4 py-3 font-medium">{formatIDR(b.total_price)}</td>
-                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${s?.color}`}>{s?.en}</span></td>
+                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${s?.color}`}>{s?.[lang]}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1.5">
                       {NEXT[b.status].slice(0, 2).map((a) => (
-                        <button key={a.status} disabled={busy === b.id} onClick={() => patch(b.id, { status: a.status }, `${b.reference} → ${a.label}`)}
+                        <button key={a.status} disabled={busy === b.id} onClick={() => patch(b.id, { status: a.status }, `${b.reference} → ${tr(lang, a.toastKey)}`)}
                           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${a.style}`}>
-                          {a.label}
+                          {tr(lang, a.labelKey)}
                         </button>
                       ))}
                     </div>
@@ -159,7 +161,7 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">No bookings match.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">{tr(lang, 'bk.no_match')}</td></tr>
             )}
           </tbody>
         </table>
@@ -178,32 +180,32 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
             </div>
 
             <span className={`mt-3 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_LABELS[selected.status]?.color}`}>
-              {STATUS_LABELS[selected.status]?.en}
+              {STATUS_LABELS[selected.status]?.[lang]}
             </span>
 
             <dl className="mt-6 space-y-3 text-sm">
-              <Row label="Email"><a href={`mailto:${selected.guest_email}`} className="text-accent hover:underline">{selected.guest_email}</a></Row>
-              <Row label="Phone"><a href={`https://wa.me/${selected.guest_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener" className="text-accent hover:underline">{selected.guest_phone}</a></Row>
-              <Row label="Room type">{rtName(selected.room_type_id)}</Row>
-              <Row label="Package"><span className="capitalize">{selected.package.replace('_', ' ')}</span></Row>
-              <Row label="Check-in">{formatDate(selected.check_in)}</Row>
-              <Row label="Check-out">{formatDate(selected.check_out)}</Row>
-              <Row label="Guests">{selected.adults} adult(s){selected.children ? `, ${selected.children} child` : ''}</Row>
-              <Row label="Total"><span className="font-semibold">{formatIDR(selected.total_price)}</span></Row>
-              {selected.special_requests && <Row label="Requests">{selected.special_requests}</Row>}
+              <Row label={tr(lang, 'bk.email')}><a href={`mailto:${selected.guest_email}`} className="text-accent hover:underline">{selected.guest_email}</a></Row>
+              <Row label={tr(lang, 'bk.phone')}><a href={`https://wa.me/${selected.guest_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener" className="text-accent hover:underline">{selected.guest_phone}</a></Row>
+              <Row label={tr(lang, 'bk.room_type')}>{rtName(selected.room_type_id)}</Row>
+              <Row label={tr(lang, 'bk.package')}><span className="capitalize">{selected.package.replace('_', ' ')}</span></Row>
+              <Row label={tr(lang, 'bk.check_in')}>{formatDate(selected.check_in)}</Row>
+              <Row label={tr(lang, 'bk.check_out')}>{formatDate(selected.check_out)}</Row>
+              <Row label={tr(lang, 'bk.guests')}>{selected.adults} {tr(lang, 'bk.adults')}{selected.children ? `, ${selected.children} ${tr(lang, 'bk.child')}` : ''}</Row>
+              <Row label={tr(lang, 'bk.total')}><span className="font-semibold">{formatIDR(selected.total_price)}</span></Row>
+              {selected.special_requests && <Row label={tr(lang, 'bk.requests')}>{selected.special_requests}</Row>}
             </dl>
 
             {/* Assign room */}
             <div className="mt-6">
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">Assign room</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">{tr(lang, 'bk.assign_room')}</label>
               <select
                 value={selected.room_id ?? ''}
-                onChange={(e) => patch(selected.id, { room_id: e.target.value || null }, 'Room assigned')}
+                onChange={(e) => patch(selected.id, { room_id: e.target.value || null }, tr(lang, 'bk.room_assigned'))}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent"
               >
-                <option value="">— Unassigned —</option>
+                <option value="">{tr(lang, 'bk.unassigned')}</option>
                 {roomsFor(selected.room_type_id).map((r) => (
-                  <option key={r.id} value={r.id}>Room {r.room_number}</option>
+                  <option key={r.id} value={r.id}>{tr(lang, 'rm.room')} {r.room_number}</option>
                 ))}
               </select>
             </div>
@@ -212,9 +214,9 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
             <div className="mt-6 flex flex-wrap gap-2">
               {NEXT[selected.status].map((a) => (
                 <button key={a.status} disabled={busy === selected.id}
-                  onClick={() => patch(selected.id, { status: a.status }, `${selected.reference} → ${a.label}`)}
+                  onClick={() => patch(selected.id, { status: a.status }, `${selected.reference} → ${tr(lang, a.toastKey)}`)}
                   className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${a.style}`}>
-                  {a.label}
+                  {tr(lang, a.labelKey)}
                 </button>
               ))}
             </div>

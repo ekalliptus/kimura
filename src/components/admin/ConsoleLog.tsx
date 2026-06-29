@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ActivityLog } from '@/lib/database.types';
+import type { AdminLang } from '@/lib/admin-i18n';
+import { t as tr } from '@/lib/admin-i18n';
 
 interface Props {
   initialLogs: ActivityLog[];
+  lang: AdminLang;
 }
 
 const CAT_COLOR: Record<string, string> = {
@@ -19,7 +22,7 @@ function ts(iso: string) {
 }
 
 /** Live, terminal-style console that tails activity_logs by polling. */
-export default function ConsoleLog({ initialLogs }: Props) {
+export default function ConsoleLog({ initialLogs, lang }: Props) {
   // Stored newest-first from the server; render oldest-first like a terminal.
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs);
   const [live, setLive] = useState(true);
@@ -84,7 +87,7 @@ export default function ConsoleLog({ initialLogs }: Props) {
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
           <span className={`flex size-2.5 rounded-full ${live ? 'animate-pulse bg-green-500' : 'bg-neutral-400'}`}></span>
-          <span className="text-sm font-medium">Console</span>
+          <span className="text-sm font-medium">{tr(lang, 'con.console')}</span>
         </div>
         <select value={category} onChange={(e) => setCategory(e.target.value)}
           className="rounded-md border border-input bg-background px-2 py-1 text-xs outline-none">
@@ -93,18 +96,18 @@ export default function ConsoleLog({ initialLogs }: Props) {
         <div className="ml-auto flex items-center gap-1.5">
           <button onClick={() => setPaused((p) => !p)}
             className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-secondary">
-            {paused ? '▶ Resume scroll' : '⏸ Pause scroll'}
+            {paused ? tr(lang, 'con.resume') : tr(lang, 'con.pause')}
           </button>
           <button onClick={() => setLive((l) => !l)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium ${live ? 'bg-green-600 text-white' : 'border border-border hover:bg-secondary'}`}>
-            {live ? 'Live' : 'Paused'}
+            {live ? tr(lang, 'con.live') : tr(lang, 'con.paused')}
           </button>
         </div>
       </div>
 
       <div ref={scrollRef} className="h-[460px] overflow-y-auto bg-neutral-950 p-4 font-mono text-xs leading-relaxed">
         {ordered.length === 0 ? (
-          <div className="text-neutral-500">No log entries.</div>
+          <div className="text-neutral-500">{tr(lang, 'con.empty')}</div>
         ) : (
           ordered.map((l) => (
             <div key={l.id} className="flex gap-2 border-b border-white/5 py-0.5">

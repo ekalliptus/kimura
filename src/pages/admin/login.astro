@@ -1,13 +1,24 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { adminLang, t as tr } from '@/lib/admin-i18n';
 
+const lang = adminLang(Astro.cookies.get('admin_lang')?.value);
 const error = Astro.url.searchParams.get('error');
 const nextUrl = Astro.url.searchParams.get('next') ?? '/admin';
-const errorMsg =
-  error === 'not_admin' ? 'That account is not an administrator.' : null;
+const errorMsg = error === 'not_admin' ? tr(lang, 'login.not_admin') : null;
+const txt = {
+  title: tr(lang, 'login.title'),
+  subtitle: tr(lang, 'login.subtitle'),
+  email: tr(lang, 'login.email'),
+  password: tr(lang, 'login.password'),
+  submit: tr(lang, 'login.submit'),
+  submitting: tr(lang, 'login.submitting'),
+  failed: tr(lang, 'login.failed'),
+  hint: tr(lang, 'login.hint'),
+};
 ---
 
-<BaseLayout title="Admin Login">
+<BaseLayout title={txt.title}>
   <main class="flex min-h-screen items-center justify-center px-5 py-16">
     <div class="w-full max-w-sm">
       <a href="/" class="mb-8 flex items-center justify-center gap-2.5">
@@ -16,21 +27,30 @@ const errorMsg =
       </a>
 
       <div class="rounded-xl border border-border bg-card p-8 shadow-sm">
-        <h1 class="font-display text-2xl font-bold">Admin Sign In</h1>
-        <p class="mt-1.5 text-sm text-muted-foreground">Management console access only.</p>
+        <div class="flex items-start justify-between">
+          <div>
+            <h1 class="font-display text-2xl font-bold">{txt.title}</h1>
+            <p class="mt-1.5 text-sm text-muted-foreground">{txt.subtitle}</p>
+          </div>
+          <form method="POST" action="/api/admin/lang" class="contents">
+            <button type="submit" class="rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-secondary">
+              {lang === 'id' ? 'EN' : 'ID'}
+            </button>
+          </form>
+        </div>
 
         {errorMsg && <p class="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMsg}</p>}
 
         <form id="login-form" class="mt-6 space-y-4">
           <input type="hidden" name="next" value={nextUrl} />
           <div>
-            <label class="mb-1.5 block text-sm font-medium" for="email">Email</label>
+            <label class="mb-1.5 block text-sm font-medium" for="email">{txt.email}</label>
             <input id="email" name="email" type="email" required autocomplete="email"
               class="w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
               placeholder="admin@kimurakostay.com" />
           </div>
           <div>
-            <label class="mb-1.5 block text-sm font-medium" for="password">Password</label>
+            <label class="mb-1.5 block text-sm font-medium" for="password">{txt.password}</label>
             <input id="password" name="password" type="password" required autocomplete="current-password"
               class="w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
               placeholder="••••••••" />
@@ -40,46 +60,47 @@ const errorMsg =
 
           <button id="login-submit" type="submit"
             class="flex w-full items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
-            Sign In
+            {txt.submit}
           </button>
         </form>
       </div>
 
       <p class="mt-6 text-center text-xs text-muted-foreground">
-        Create an admin: add the user in Supabase Auth, then insert their id into
+        {txt.hint}
         <code class="rounded bg-secondary px-1 py-0.5">public.admins</code>.
       </p>
     </div>
   </main>
 </BaseLayout>
 
-<script>
-  const form = document.getElementById('login-form') as HTMLFormElement;
-  const btn = document.getElementById('login-submit') as HTMLButtonElement;
-  const errEl = document.getElementById('login-error') as HTMLParagraphElement;
+<script is:inline data-txt={JSON.stringify(txt)}>
+  const TXT = JSON.parse(document.currentScript?.dataset.txt ?? '{}');
+  const form = document.getElementById('login-form');
+  const btn = document.getElementById('login-submit');
+  const errEl = document.getElementById('login-error');
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errEl.classList.add('hidden');
-    btn.disabled = true;
-    btn.textContent = 'Signing in…';
+    errEl?.classList.add('hidden');
+    if (btn) { btn.setAttribute('disabled', 'true'); btn.textContent = TXT.submitting; }
 
     const fd = new FormData(form);
-    const next = (fd.get('next') as string) || '/admin';
+    const next = (fd.get('next') || '/admin');
     try {
       const res = await fetch('/api/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: fd.get('email'), password: fd.get('password') }),
       });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Sign in failed');
+      const data = (await res.json());
+      if (!res.ok) throw new Error(data.error ?? TXT.failed);
       location.href = next;
     } catch (err) {
-      errEl.textContent = err instanceof Error ? err.message : 'Sign in failed';
-      errEl.classList.remove('hidden');
-      btn.disabled = false;
-      btn.textContent = 'Sign In';
+      if (errEl) {
+        errEl.textContent = err instanceof Error ? err.message : TXT.failed;
+        errEl.classList.remove('hidden');
+      }
+      if (btn) { btn.removeAttribute('disabled'); btn.textContent = TXT.submit; }
     }
   });
 </script>
