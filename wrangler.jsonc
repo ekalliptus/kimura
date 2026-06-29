@@ -1,6 +1,6 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "kimura-kostay",
+	"name": "kimura",
 	// Custom worker entry: delegates HTTP to Astro SSR + adds the scheduled() cron.
 	// This REPLACES "@astrojs/cloudflare/entrypoints/server" — never set both.
 	"main": "./src/worker.ts",
