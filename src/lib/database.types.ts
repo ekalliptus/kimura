@@ -147,6 +147,10 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      room_type_availability: {
+        Args: { p_slug: string; p_check_in: string; p_check_out: string };
+        Returns: { total: number; booked: number; available: number }[];
+      };
     };
     Enums: {
       booking_status: BookingStatus;

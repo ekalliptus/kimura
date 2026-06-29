@@ -62,6 +62,19 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const { unit, quantity, total } = estimateTotal(rt, pkg, check_in, check_out);
   if (unit == null) return bad('selected package not available for this room');
 
+  // Soft availability: reject only when CONFIRMED/checked-in holds already fill
+  // every sellable room of this type for the requested dates. Pending requests
+  // don't consume inventory (admin confirms manually). Overnight only — a
+  // same-day half_day stay can't "fill a night", so we skip the gate for it.
+  if (pkg !== 'half_day') {
+    const { data: avail } = await anon
+      .rpc('room_type_availability', { p_slug: roomSlug, p_check_in: check_in, p_check_out: check_out })
+      .maybeSingle();
+    if (avail && avail.available <= 0) {
+      return bad('Fully booked for the selected dates. Please try other dates.', 409);
+    }
+  }
+
   // Insert via service-role so we can also write the activity log atomically-ish.
   const admin = await createSupabaseAdminClient();
   const row = {

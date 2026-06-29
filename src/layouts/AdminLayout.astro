@@ -74,8 +74,14 @@ const nav = [
 
       <!-- Main -->
       <div class="flex min-w-0 flex-1 flex-col">
-        <header class="flex h-16 items-center justify-between border-b border-border bg-card/60 px-6 backdrop-blur">
-          <h1 class="font-display text-lg font-semibold">{title}</h1>
+        <header class="flex h-16 items-center justify-between gap-3 border-b border-border bg-card/60 px-4 backdrop-blur sm:px-6">
+          <div class="flex min-w-0 items-center gap-2">
+            <!-- Mobile sidebar toggle -->
+            <button id="admin-menu-toggle" class="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground transition-colors hover:bg-secondary md:hidden" aria-label="Open menu" aria-controls="admin-mobile-nav">
+              <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <h1 class="truncate font-display text-lg font-semibold">{title}</h1>
+          </div>
           <div class="flex items-center gap-2">
             <button id="admin-theme-toggle" class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary" aria-label="Toggle theme">
               <svg class="size-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -84,7 +90,19 @@ const nav = [
           </div>
         </header>
 
-        <main class="flex-1 overflow-x-hidden p-6">
+        <!-- Mobile nav (sidebar collapsed) -->
+        <nav id="admin-mobile-nav" class="hidden border-b border-border bg-card md:hidden">
+          <div class="grid grid-cols-2 gap-1 p-3">
+            {nav.map((n) => (
+              <a href={n.href} class:list={['flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors', active === n.key ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/60']}>
+                <span>{n.icon}</span>{n.label}
+              </a>
+            ))}
+            <button id="admin-mobile-logout" class="col-span-2 mt-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-destructive hover:bg-secondary">Sign out</button>
+          </div>
+        </nav>
+
+        <main class="flex-1 overflow-x-hidden p-4 sm:p-6">
           <slot />
         </main>
       </div>
@@ -95,9 +113,16 @@ const nav = [
         const dark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('theme', dark ? 'dark' : 'light');
       });
-      document.getElementById('logout-btn')?.addEventListener('click', async () => {
+      async function signOut() {
         await fetch('/api/admin/auth', { method: 'DELETE' });
         location.href = '/admin/login';
+      }
+      document.getElementById('logout-btn')?.addEventListener('click', signOut);
+      document.getElementById('admin-mobile-logout')?.addEventListener('click', signOut);
+
+      // Mobile sidebar toggle
+      document.getElementById('admin-menu-toggle')?.addEventListener('click', () => {
+        document.getElementById('admin-mobile-nav')?.classList.toggle('hidden');
       });
     </script>
   </body>

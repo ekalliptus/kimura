@@ -39,19 +39,24 @@ Run the migrations **in order** via the Supabase SQL Editor (or the CLI):
 1. `supabase/migrations/0001_init.sql` — tables, enums, triggers, keep-alive row
 2. `supabase/migrations/0002_rls.sql` — Row Level Security + `is_admin()`
 3. `supabase/migrations/0003_seed.sql` — 8 room types + sample inventory
+4. `supabase/migrations/0004_grants.sql` — role grants (RLS runs on top of these)
+5. `supabase/migrations/0005_availability.sql` — `room_type_availability()` (soft inventory)
+6. `supabase/migrations/0006_admin_bootstrap.sql` — `promote_admin()` helper
+7. `supabase/migrations/0007_harden_booking_insert.sql` — constrain anon booking insert
 
 > With the Supabase CLI: `supabase db push` (after `supabase link`).
 
 ### Create an admin user
 
-Auth → Users → **Add user** (email + password). Then in the SQL Editor:
+Auth → Users → **Add user** (email + password). Then in the SQL Editor, promote
+them **by email** (no UUID hunting):
 
 ```sql
-insert into public.admins (id, email, full_name, role)
-values ('<USER_UUID_FROM_AUTH>', 'admin@kimurakostay.com', 'Owner', 'owner');
+select public.promote_admin('admin@kimurakostay.com', 'owner');
 ```
 
-Only users present in `public.admins` can sign in to `/admin`.
+Only users present in `public.admins` can sign in to `/admin`. Re-running is safe
+(idempotent), and it raises if no auth user has that email yet.
 
 ## 4. Local development
 

@@ -198,7 +198,20 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
       <aside className="h-fit lg:sticky lg:top-24">
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           {room?.images?.[0] && (
-            <img src={room.images[0]} alt="" className="mb-4 aspect-[4/3] w-full rounded-lg object-cover" />
+            <div className="mb-4 aspect-[4/3] w-full animate-pulse overflow-hidden rounded-lg bg-muted">
+              <img
+                key={room.images[0]}
+                src={room.images[0]}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onLoad={(e) => {
+                  e.currentTarget.classList.remove('opacity-0');
+                  e.currentTarget.parentElement?.classList.remove('animate-pulse');
+                }}
+                className="size-full object-cover opacity-0 transition-opacity duration-500"
+              />
+            </div>
           )}
           <h3 className="font-display text-lg font-semibold">
             {room ? (lang === 'id' ? room.name_id ?? room.name : room.name) : '—'}
