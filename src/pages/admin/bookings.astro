@@ -1,0 +1,29 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import BookingsManager from '@/components/admin/BookingsManager.tsx';
+import { adminClient } from '@/lib/admin';
+import type { Booking } from '@/lib/database.types';
+
+const supabase = adminClient(Astro);
+const focusRef = Astro.url.searchParams.get('ref') ?? undefined;
+
+const [bookingsRes, rtRes, roomsRes] = await Promise.all([
+  supabase.from('bookings').select('*').order('created_at', { ascending: false }).limit(1000),
+  supabase.from('room_types').select('id, name').order('sort_order'),
+  supabase.from('rooms').select('id, room_number, room_type_id').eq('active', true).order('room_number'),
+]);
+
+const bookings = (bookingsRes.data ?? []) as Booking[];
+const roomTypes = rtRes.data ?? [];
+const rooms = roomsRes.data ?? [];
+---
+
+<AdminLayout title="Bookings" active="bookings">
+  <BookingsManager
+    initialBookings={bookings}
+    roomTypes={roomTypes}
+    rooms={rooms}
+    focusRef={focusRef}
+    client:load
+  />
+</AdminLayout>

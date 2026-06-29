@@ -1,0 +1,164 @@
+// Lightweight bilingual (ID/EN) dictionary + helpers. No runtime dep.
+// Default language is Indonesian (local audience); ?lang=en or /en switches.
+
+export type Lang = 'id' | 'en';
+export const LANGS: Lang[] = ['id', 'en'];
+export const DEFAULT_LANG: Lang = 'id';
+
+export const ui = {
+  id: {
+    'nav.rooms': 'Kamar',
+    'nav.packages': 'Paket',
+    'nav.location': 'Lokasi',
+    'nav.contact': 'Kontak',
+    'nav.book': 'Pesan Sekarang',
+    'hero.kicker': 'Penginapan minimalis di Semarang',
+    'hero.title': 'Tinggal dengan tenang.\nApa adanya.',
+    'hero.subtitle':
+      'Kimura Kostay menghadirkan ketenangan ala Jepang di jantung Semarang — dari setengah hari hingga bulanan.',
+    'hero.cta': 'Lihat Kamar',
+    'hero.cta2': 'Cek Ketersediaan',
+    'packages.title': 'Satu tempat, segala durasi',
+    'packages.subtitle': 'Pilih ritme menginap Anda.',
+    'pkg.half_day': 'Setengah Hari',
+    'pkg.daily': 'Harian',
+    'pkg.weekly': 'Mingguan',
+    'pkg.monthly': 'Bulanan',
+    'pkg.half_day.desc': 'Istirahat singkat, hingga 12 jam.',
+    'pkg.daily.desc': 'Menginap semalam, check-out santai.',
+    'pkg.weekly.desc': 'Tujuh malam, tarif lebih hemat.',
+    'pkg.monthly.desc': 'Tinggal lama dengan harga terbaik.',
+    'rooms.title': 'Pilihan Kamar',
+    'rooms.subtitle': 'Delapan tipe, semua dirancang ringkas dan tenang.',
+    'rooms.from': 'mulai',
+    'rooms.night': '/malam',
+    'rooms.view': 'Lihat Detail',
+    'rooms.book': 'Pesan',
+    'rooms.sqm': 'm²',
+    'rooms.guests': 'tamu',
+    'rooms.featured': 'Favorit',
+    'room.amenities': 'Fasilitas',
+    'room.pricing': 'Harga per Paket',
+    'room.book_this': 'Pesan Kamar Ini',
+    'room.back': 'Kembali ke Kamar',
+    'location.title': 'Temukan Kami',
+    'location.subtitle': 'Jl. Brigjen Sudiarto No. 116, Gayamsari, Semarang',
+    'location.directions': 'Petunjuk Arah',
+    'contact.title': 'Hubungi Kami',
+    'contact.phone': 'Telepon',
+    'contact.email': 'Email',
+    'contact.checkin': 'Check-in',
+    'contact.checkout': 'Check-out',
+    'book.title': 'Buat Reservasi',
+    'book.subtitle': 'Isi data Anda — kami konfirmasi via WhatsApp/email.',
+    'book.room': 'Tipe Kamar',
+    'book.package': 'Paket',
+    'book.checkin': 'Tanggal Masuk',
+    'book.checkout': 'Tanggal Keluar',
+    'book.name': 'Nama Lengkap',
+    'book.email': 'Email',
+    'book.phone': 'No. WhatsApp',
+    'book.adults': 'Dewasa',
+    'book.children': 'Anak',
+    'book.requests': 'Permintaan Khusus',
+    'book.submit': 'Kirim Reservasi',
+    'book.submitting': 'Mengirim…',
+    'book.success.title': 'Reservasi Terkirim!',
+    'book.success.body': 'Kode booking Anda:',
+    'book.success.note': 'Tim kami akan menghubungi Anda untuk konfirmasi. Terima kasih!',
+    'book.estimate': 'Perkiraan total',
+    'book.another': 'Buat Reservasi Lain',
+    'footer.tagline': 'Penginapan minimalis ala Jepang di Semarang.',
+    'footer.rights': 'Hak cipta dilindungi.',
+    'common.required': 'wajib diisi',
+  },
+  en: {
+    'nav.rooms': 'Rooms',
+    'nav.packages': 'Packages',
+    'nav.location': 'Location',
+    'nav.contact': 'Contact',
+    'nav.book': 'Book Now',
+    'hero.kicker': 'A minimalist stay in Semarang',
+    'hero.title': 'Stay quietly.\nStay simply.',
+    'hero.subtitle':
+      'Kimura Kostay brings Japanese calm to the heart of Semarang — from half-day to monthly.',
+    'hero.cta': 'Explore Rooms',
+    'hero.cta2': 'Check Availability',
+    'packages.title': 'One place, every length of stay',
+    'packages.subtitle': 'Choose your rhythm.',
+    'pkg.half_day': 'Half Day',
+    'pkg.daily': 'Daily',
+    'pkg.weekly': 'Weekly',
+    'pkg.monthly': 'Monthly',
+    'pkg.half_day.desc': 'A short rest, up to 12 hours.',
+    'pkg.daily.desc': 'An overnight stay, easy checkout.',
+    'pkg.weekly.desc': 'Seven nights at a better rate.',
+    'pkg.monthly.desc': 'Long stays at the best price.',
+    'rooms.title': 'Our Rooms',
+    'rooms.subtitle': 'Eight types, all designed compact and calm.',
+    'rooms.from': 'from',
+    'rooms.night': '/night',
+    'rooms.view': 'View Details',
+    'rooms.book': 'Book',
+    'rooms.sqm': 'm²',
+    'rooms.guests': 'guests',
+    'rooms.featured': 'Favourite',
+    'room.amenities': 'Amenities',
+    'room.pricing': 'Pricing by Package',
+    'room.book_this': 'Book This Room',
+    'room.back': 'Back to Rooms',
+    'location.title': 'Find Us',
+    'location.subtitle': 'Jl. Brigjen Sudiarto No. 116, Gayamsari, Semarang',
+    'location.directions': 'Get Directions',
+    'contact.title': 'Get in Touch',
+    'contact.phone': 'Phone',
+    'contact.email': 'Email',
+    'contact.checkin': 'Check-in',
+    'contact.checkout': 'Check-out',
+    'book.title': 'Make a Reservation',
+    'book.subtitle': 'Fill in your details — we confirm via WhatsApp/email.',
+    'book.room': 'Room Type',
+    'book.package': 'Package',
+    'book.checkin': 'Check-in Date',
+    'book.checkout': 'Check-out Date',
+    'book.name': 'Full Name',
+    'book.email': 'Email',
+    'book.phone': 'WhatsApp Number',
+    'book.adults': 'Adults',
+    'book.children': 'Children',
+    'book.requests': 'Special Requests',
+    'book.submit': 'Submit Reservation',
+    'book.submitting': 'Submitting…',
+    'book.success.title': 'Reservation Sent!',
+    'book.success.body': 'Your booking reference:',
+    'book.success.note': 'Our team will contact you to confirm. Thank you!',
+    'book.estimate': 'Estimated total',
+    'book.another': 'Make Another Reservation',
+    'footer.tagline': 'A Japanese-minimalist stay in Semarang.',
+    'footer.rights': 'All rights reserved.',
+    'common.required': 'required',
+  },
+} as const;
+
+export type UIKey = keyof (typeof ui)['en'];
+
+export function getLangFromUrl(url: URL): Lang {
+  const q = url.searchParams.get('lang');
+  if (q === 'en' || q === 'id') return q;
+  const seg = url.pathname.split('/').filter(Boolean)[0];
+  if (seg === 'en') return 'en';
+  return DEFAULT_LANG;
+}
+
+export function useTranslations(lang: Lang) {
+  return function t(key: UIKey): string {
+    return ui[lang][key] ?? ui[DEFAULT_LANG][key] ?? key;
+  };
+}
+
+/** Toggle target for the language switch, preserving path. */
+export function altLangHref(url: URL, lang: Lang): string {
+  const u = new URL(url.toString());
+  u.searchParams.set('lang', lang === 'id' ? 'en' : 'id');
+  return u.pathname + u.search;
+}

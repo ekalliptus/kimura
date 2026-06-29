@@ -1,0 +1,117 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/site/Header.astro';
+import Footer from '@/components/site/Footer.astro';
+import { getLangFromUrl, useTranslations } from '@/lib/i18n';
+import { getRoomType } from '@/lib/queries';
+import { formatIDR, PACKAGES } from '@/lib/format';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const q = lang === 'en' ? '?lang=en' : '';
+const { slug } = Astro.params;
+
+const room = slug ? await getRoomType(slug) : null;
+if (!room) return Astro.redirect(`/rooms${q}`);
+
+const name = lang === 'id' ? (room.name_id ?? room.name) : room.name;
+const desc = lang === 'id' ? (room.description_id ?? room.description) : room.description;
+const images = room.images?.length ? room.images : [];
+
+const pkgPrices = PACKAGES.map((p) => ({
+  key: p,
+  label: t(`pkg.${p}` as any),
+  price:
+    p === 'half_day' ? room.price_half_day :
+    p === 'daily' ? room.price_daily :
+    p === 'weekly' ? room.price_weekly : room.price_monthly,
+})).filter((x) => x.price != null);
+---
+
+<BaseLayout title={name} description={desc ?? undefined}>
+  <Header />
+  <main class="mx-auto max-w-6xl px-5 py-10">
+    <a href={`/rooms${q}`} class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+      ← {t('room.back')}
+    </a>
+
+    <!-- Gallery -->
+    {
+      images.length > 0 && (
+        <div class="mt-6 grid gap-3 md:grid-cols-2">
+          <div class="overflow-hidden rounded-xl bg-muted md:row-span-2">
+            <img src={images[0]} alt={name} class="aspect-[4/3] size-full object-cover md:aspect-auto md:h-full" />
+          </div>
+          {images.slice(1, 3).map((img) => (
+            <div class="hidden overflow-hidden rounded-xl bg-muted md:block">
+              <img src={img} alt={name} class="size-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    <div class="mt-10 grid gap-12 lg:grid-cols-[1fr_360px]">
+      <!-- Details -->
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          {room.featured && <span class="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">{t('rooms.featured')}</span>}
+          <div class="flex items-center gap-3 text-sm text-muted-foreground">
+            {room.size_sqm && <span>{room.size_sqm} {t('rooms.sqm')}</span>}
+            <span class="size-1 rounded-full bg-border"></span>
+            <span>{room.max_occupancy} {t('rooms.guests')}</span>
+            {room.bed_config && (<><span class="size-1 rounded-full bg-border"></span><span>{room.bed_config}</span></>)}
+          </div>
+        </div>
+
+        <h1 class="mt-4 font-display text-4xl font-bold sm:text-5xl">{name}</h1>
+        {desc && <p class="mt-5 text-lg leading-relaxed text-muted-foreground">{desc}</p>}
+
+        {
+          room.amenities?.length > 0 && (
+            <div class="mt-10">
+              <h2 class="font-display text-xl font-semibold">{t('room.amenities')}</h2>
+              <ul class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {room.amenities.map((a) => (
+                  <li class="flex items-center gap-2.5 text-sm">
+                    <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">✓</span>
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+      </div>
+
+      <!-- Pricing / Book card -->
+      <aside class="h-fit lg:sticky lg:top-24">
+        <div class="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h2 class="font-display text-lg font-semibold">{t('room.pricing')}</h2>
+          <table class="mt-4 w-full text-sm">
+            <tbody>
+              {
+                pkgPrices.map((p) => (
+                  <tr class="border-b border-border/60 last:border-0">
+                    <td class="py-3 text-muted-foreground">{p.label}</td>
+                    <td class="py-3 text-right font-medium">{formatIDR(p.price)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+          <a
+            href={`/book${q ? q + '&' : '?'}room=${room.slug}`}
+            class="mt-6 flex w-full items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+          >
+            {t('room.book_this')}
+          </a>
+          <p class="mt-3 text-center text-xs text-muted-foreground">
+            {lang === 'id' ? 'Tanpa pembayaran di muka — konfirmasi manual.' : 'No upfront payment — manual confirmation.'}
+          </p>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

@@ -1,0 +1,18 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import RoomsManager from '@/components/admin/RoomsManager.tsx';
+import { adminClient } from '@/lib/admin';
+import type { Room, RoomType } from '@/lib/database.types';
+
+const supabase = adminClient(Astro);
+const [rtRes, roomsRes] = await Promise.all([
+  supabase.from('room_types').select('*').order('sort_order'),
+  supabase.from('rooms').select('*').order('room_number'),
+]);
+const roomTypes = (rtRes.data ?? []) as RoomType[];
+const rooms = (roomsRes.data ?? []) as Room[];
+---
+
+<AdminLayout title="Rooms" active="rooms">
+  <RoomsManager roomTypes={roomTypes} rooms={rooms} client:load />
+</AdminLayout>

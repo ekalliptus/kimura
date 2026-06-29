@@ -1,0 +1,104 @@
+---
+import '@/styles/global.css';
+
+interface Props {
+  title: string;
+  active: 'dashboard' | 'bookings' | 'rooms' | 'activity' | 'system';
+}
+const { title, active } = Astro.props;
+const user = Astro.locals.user;
+
+const nav = [
+  { key: 'dashboard', href: '/admin', label: 'Dashboard', icon: '◧' },
+  { key: 'bookings', href: '/admin/bookings', label: 'Bookings', icon: '✎' },
+  { key: 'rooms', href: '/admin/rooms', label: 'Rooms', icon: '⌂' },
+  { key: 'activity', href: '/admin/activity', label: 'Activity Log', icon: '≣' },
+  { key: 'system', href: '/admin/system', label: 'System', icon: '⚙' },
+] as const;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Kimura Admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script is:inline>
+      (() => {
+        const saved = localStorage.getItem('theme');
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
+  </head>
+  <body class="min-h-screen bg-background text-foreground">
+    <div class="flex min-h-screen">
+      <!-- Sidebar -->
+      <aside class="hidden w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col">
+        <div class="flex h-16 items-center gap-2.5 border-b border-border px-5">
+          <span class="flex size-8 items-center justify-center rounded-md bg-primary font-display text-base font-bold text-primary-foreground">木</span>
+          <div class="leading-none">
+            <div class="font-display text-sm font-semibold">Kimura</div>
+            <div class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Admin</div>
+          </div>
+        </div>
+
+        <nav class="flex-1 space-y-1 p-3">
+          {nav.map((n) => (
+            <a
+              href={n.href}
+              class:list={[
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                active === n.key ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
+              ]}
+            >
+              <span class="text-base">{n.icon}</span>{n.label}
+            </a>
+          ))}
+        </nav>
+
+        <div class="border-t border-border p-3">
+          <a href="/" class="mb-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground">
+            <span>↗</span> View site
+          </a>
+          <div class="rounded-md bg-secondary/50 px-3 py-2">
+            <div class="truncate text-xs text-muted-foreground">{user?.email ?? '—'}</div>
+            <button id="logout-btn" class="mt-1.5 text-xs font-medium text-destructive hover:underline">Sign out</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header class="flex h-16 items-center justify-between border-b border-border bg-card/60 px-6 backdrop-blur">
+          <h1 class="font-display text-lg font-semibold">{title}</h1>
+          <div class="flex items-center gap-2">
+            <button id="admin-theme-toggle" class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary" aria-label="Toggle theme">
+              <svg class="size-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+              <svg class="hidden size-4 dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <main class="flex-1 overflow-x-hidden p-6">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('admin-theme-toggle')?.addEventListener('click', () => {
+        const dark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      });
+      document.getElementById('logout-btn')?.addEventListener('click', async () => {
+        await fetch('/api/admin/auth', { method: 'DELETE' });
+        location.href = '/admin/login';
+      });
+    </script>
+  </body>
+</html>

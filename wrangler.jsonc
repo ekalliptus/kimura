@@ -1,0 +1,31 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "kimura-kostay",
+	// Custom worker entry: delegates HTTP to Astro SSR + adds the scheduled() cron.
+	// This REPLACES "@astrojs/cloudflare/entrypoints/server" — never set both.
+	"main": "./src/worker.ts",
+	"compatibility_date": "2026-06-28",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	// The Cloudflare adapter injects an Astro sessions driver bound to KV "SESSION".
+	// We don't use Astro.session (auth is Supabase cookies), but the binding must
+	// exist for deploy. Create one and paste its id:
+	//   bunx wrangler kv namespace create SESSION
+	"kv_namespaces": [
+		{ "binding": "SESSION", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+	],
+	"triggers": {
+		// Supabase keep-alive ping — Mon & Thu 07:17 UTC (off-peak, twice-weekly floor).
+		"crons": ["17 7 * * 1,4"]
+	},
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		// Non-secret runtime vars only. Secrets go via `wrangler secret put`.
+		// Local dev reads .dev.vars (see .dev.vars.example).
+	}
+}

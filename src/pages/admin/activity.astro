@@ -1,0 +1,21 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import ConsoleLog from '@/components/admin/ConsoleLog.tsx';
+import { adminClient } from '@/lib/admin';
+import type { ActivityLog } from '@/lib/database.types';
+
+const supabase = adminClient(Astro);
+const { data } = await supabase
+  .from('activity_logs')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(100);
+const logs = (data ?? []) as ActivityLog[];
+---
+
+<AdminLayout title="Activity Log" active="activity">
+  <p class="mb-4 text-sm text-muted-foreground">
+    Live audit trail of every booking change, room update, sign-in, and system event.
+  </p>
+  <ConsoleLog initialLogs={logs} client:load />
+</AdminLayout>

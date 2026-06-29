@@ -1,0 +1,180 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/site/Header.astro';
+import Footer from '@/components/site/Footer.astro';
+import RoomCard from '@/components/site/RoomCard.astro';
+import SemarangMap from '@/components/SemarangMap.tsx';
+import { getLangFromUrl, useTranslations } from '@/lib/i18n';
+import { getRoomTypes } from '@/lib/queries';
+import { HOTEL } from '@/lib/hotel';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const q = lang === 'en' ? '?lang=en' : '';
+
+const rooms = await getRoomTypes();
+const featured = rooms.filter((r) => r.featured).slice(0, 3);
+const heroImg = rooms.find((r) => r.images?.length)?.images[0]
+  ?? 'https://h-img1.cloudbeds.com/uploads/171276/9~~69b7c88371551.jpg';
+
+const packages = [
+  { key: 'half_day', icon: '◐' },
+  { key: 'daily', icon: '☀' },
+  { key: 'weekly', icon: '☾' },
+  { key: 'monthly', icon: '✦' },
+] as const;
+
+const heroLines = t('hero.title').split('\n');
+---
+
+<BaseLayout>
+  <Header />
+
+  <main>
+    <!-- ===================== HERO ===================== -->
+    <section class="relative overflow-hidden">
+      <div class="absolute inset-0">
+        <img src={heroImg} alt="" class="size-full object-cover" />
+        <div class="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+      </div>
+
+      <div class="relative mx-auto flex min-h-[88vh] max-w-6xl flex-col justify-center px-5 py-24">
+        <span class="rule-jp mb-6">{t('hero.kicker')}</span>
+        <h1 class="max-w-2xl font-display text-5xl font-bold leading-[1.08] tracking-tight sm:text-6xl md:text-7xl">
+          {heroLines.map((line, i) => (<span class="block">{line}{i === 0 && <span class="text-accent">.</span>}</span>))}
+        </h1>
+        <p class="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">{t('hero.subtitle')}</p>
+
+        <div class="mt-9 flex flex-wrap gap-3">
+          <a href={`/rooms${q}`} class="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:opacity-90">
+            {t('hero.cta')}
+          </a>
+          <a href={`/book${q}`} class="inline-flex items-center rounded-md border border-border bg-background/60 px-6 py-3 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary">
+            {t('hero.cta2')}
+          </a>
+        </div>
+
+        <div class="mt-16 flex flex-wrap items-center gap-x-10 gap-y-3 text-sm text-muted-foreground">
+          <span>★ 8 {lang === 'id' ? 'tipe kamar' : 'room types'}</span>
+          <span class="hidden sm:inline">·</span>
+          <span>{HOTEL.addressShort}</span>
+          <span class="hidden sm:inline">·</span>
+          <span>{t('contact.checkin')} {HOTEL.checkIn}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PACKAGES ===================== -->
+    <section id="packages" class="mx-auto max-w-6xl scroll-mt-20 px-5 py-24">
+      <div class="mx-auto max-w-2xl text-center">
+        <span class="rule-jp mx-auto">036°</span>
+        <h2 class="mt-5 font-display text-3xl font-bold sm:text-4xl">{t('packages.title')}</h2>
+        <p class="mt-3 text-muted-foreground">{t('packages.subtitle')}</p>
+      </div>
+
+      <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          packages.map((p) => (
+            <div class="group rounded-xl border border-border bg-card p-7 transition-colors hover:border-accent/50">
+              <div class="flex size-12 items-center justify-center rounded-lg bg-secondary text-2xl text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
+                {p.icon}
+              </div>
+              <h3 class="mt-5 font-display text-lg font-semibold">{t(`pkg.${p.key}` as any)}</h3>
+              <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{t(`pkg.${p.key}.desc` as any)}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- ===================== FEATURED ROOMS ===================== -->
+    <section class="border-y border-border/60 bg-secondary/20">
+      <div class="mx-auto max-w-6xl px-5 py-24">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span class="rule-jp">{t('nav.rooms')}</span>
+            <h2 class="mt-4 font-display text-3xl font-bold sm:text-4xl">{t('rooms.title')}</h2>
+            <p class="mt-2 max-w-md text-muted-foreground">{t('rooms.subtitle')}</p>
+          </div>
+          <a href={`/rooms${q}`} class="inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary">
+            {lang === 'id' ? 'Semua Kamar' : 'All Rooms'} →
+          </a>
+        </div>
+
+        {
+          featured.length > 0 ? (
+            <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((room) => <RoomCard room={room} lang={lang} />)}
+            </div>
+          ) : (
+            <div class="mt-12 rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
+              {lang === 'id'
+                ? 'Belum ada kamar. Jalankan migrasi & seed database, lalu muat ulang.'
+                : 'No rooms yet. Run the DB migrations & seed, then reload.'}
+            </div>
+          )
+        }
+      </div>
+    </section>
+
+    <!-- ===================== LOCATION ===================== -->
+    <section id="location" class="mx-auto max-w-6xl scroll-mt-20 px-5 py-24">
+      <div class="grid items-center gap-10 lg:grid-cols-2">
+        <div>
+          <span class="rule-jp">{t('nav.location')}</span>
+          <h2 class="mt-4 font-display text-3xl font-bold sm:text-4xl">{t('location.title')}</h2>
+          <p class="mt-4 max-w-md leading-relaxed text-muted-foreground">{HOTEL.address}</p>
+          <dl class="mt-8 grid grid-cols-2 gap-6 text-sm">
+            <div>
+              <dt class="text-xs uppercase tracking-wider text-muted-foreground">{t('contact.phone')}</dt>
+              <dd class="mt-1"><a href={`tel:${HOTEL.phone}`} class="font-medium hover:text-accent">{HOTEL.phoneDisplay}</a></dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-wider text-muted-foreground">{t('contact.email')}</dt>
+              <dd class="mt-1"><a href={`mailto:${HOTEL.email}`} class="font-medium hover:text-accent">{HOTEL.email}</a></dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-wider text-muted-foreground">{t('contact.checkin')}</dt>
+              <dd class="mt-1 font-medium">{HOTEL.checkIn}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-wider text-muted-foreground">{t('contact.checkout')}</dt>
+              <dd class="mt-1 font-medium">{HOTEL.checkOut}</dd>
+            </div>
+          </dl>
+          <a href={HOTEL.mapsUrl} target="_blank" rel="noopener" class="mt-8 inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
+            {t('location.directions')}
+          </a>
+        </div>
+
+        <SemarangMap client:only="react" />
+      </div>
+    </section>
+
+    <!-- ===================== CONTACT / CTA ===================== -->
+    <section id="contact" class="border-t border-border/60 bg-primary text-primary-foreground">
+      <div class="mx-auto max-w-4xl scroll-mt-20 px-5 py-24 text-center">
+        <span class="font-display text-5xl">木</span>
+        <h2 class="mt-6 font-display text-3xl font-bold sm:text-4xl">
+          {lang === 'id' ? 'Siap untuk menginap dengan tenang?' : 'Ready for a quiet stay?'}
+        </h2>
+        <p class="mx-auto mt-4 max-w-lg text-primary-foreground/70">
+          {lang === 'id'
+            ? 'Pesan langsung dan tim kami akan mengonfirmasi reservasi Anda.'
+            : 'Book directly and our team will confirm your reservation.'}
+        </p>
+        <div class="mt-9 flex flex-wrap justify-center gap-3">
+          <a href={`/book${q}`} class="inline-flex items-center rounded-md bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90">
+            {t('nav.book')}
+          </a>
+          <a href={`tel:${HOTEL.phone}`} class="inline-flex items-center rounded-md border border-primary-foreground/25 px-6 py-3 text-sm font-medium transition-colors hover:bg-primary-foreground/10">
+            {HOTEL.phoneDisplay}
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

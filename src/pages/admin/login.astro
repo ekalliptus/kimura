@@ -1,0 +1,85 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const error = Astro.url.searchParams.get('error');
+const nextUrl = Astro.url.searchParams.get('next') ?? '/admin';
+const errorMsg =
+  error === 'not_admin' ? 'That account is not an administrator.' : null;
+---
+
+<BaseLayout title="Admin Login">
+  <main class="flex min-h-screen items-center justify-center px-5 py-16">
+    <div class="w-full max-w-sm">
+      <a href="/" class="mb-8 flex items-center justify-center gap-2.5">
+        <span class="flex size-10 items-center justify-center rounded-md bg-primary font-display text-xl font-bold text-primary-foreground">木</span>
+        <span class="font-display text-xl font-semibold">Kimura Kostay</span>
+      </a>
+
+      <div class="rounded-xl border border-border bg-card p-8 shadow-sm">
+        <h1 class="font-display text-2xl font-bold">Admin Sign In</h1>
+        <p class="mt-1.5 text-sm text-muted-foreground">Management console access only.</p>
+
+        {errorMsg && <p class="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMsg}</p>}
+
+        <form id="login-form" class="mt-6 space-y-4">
+          <input type="hidden" name="next" value={nextUrl} />
+          <div>
+            <label class="mb-1.5 block text-sm font-medium" for="email">Email</label>
+            <input id="email" name="email" type="email" required autocomplete="email"
+              class="w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
+              placeholder="admin@kimurakostay.com" />
+          </div>
+          <div>
+            <label class="mb-1.5 block text-sm font-medium" for="password">Password</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password"
+              class="w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
+              placeholder="••••••••" />
+          </div>
+
+          <p id="login-error" class="hidden rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"></p>
+
+          <button id="login-submit" type="submit"
+            class="flex w-full items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
+            Sign In
+          </button>
+        </form>
+      </div>
+
+      <p class="mt-6 text-center text-xs text-muted-foreground">
+        Create an admin: add the user in Supabase Auth, then insert their id into
+        <code class="rounded bg-secondary px-1 py-0.5">public.admins</code>.
+      </p>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('login-form') as HTMLFormElement;
+  const btn = document.getElementById('login-submit') as HTMLButtonElement;
+  const errEl = document.getElementById('login-error') as HTMLParagraphElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    const fd = new FormData(form);
+    const next = (fd.get('next') as string) || '/admin';
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: fd.get('email'), password: fd.get('password') }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Sign in failed');
+      location.href = next;
+    } catch (err) {
+      errEl.textContent = err instanceof Error ? err.message : 'Sign in failed';
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+</script>
