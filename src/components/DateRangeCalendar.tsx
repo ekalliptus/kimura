@@ -7,15 +7,17 @@ interface Props {
   minDate?: string; // earliest selectable day (ISO), default today
   onChange: (checkIn: string, checkOut: string) => void;
   locale: 'id' | 'en';
+  /** Single-day selection (half-day stays): each click sets check-in only. */
+  singleMode?: boolean;
 }
 
 /**
  * Two-month date-range picker. No dependencies.
  * Click 1 → check-in; click 2 → check-out (must be after check-in). Clicking an
  * earlier day after a check-in resets to a new check-in. Keyboard-accessible
- * via native button elements.
+ * via native button elements. `singleMode` disables range selection (half-day).
  */
-export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange, locale }: Props) {
+export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange, locale, singleMode }: Props) {
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const floor = minDate ?? todayISO;
 
@@ -44,6 +46,11 @@ export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange
 
   function handleClick(dayISO: string) {
     const dayTs = new Date(dayISO + 'T00:00:00').getTime();
+    if (singleMode) {
+      // Half-day: each click just sets the single check-in day.
+      onChange(dayISO, dayISO);
+      return;
+    }
     // No start, or clicking before/at start → new check-in.
     if (inTs == null || dayTs <= inTs) {
       onChange(dayISO, '');

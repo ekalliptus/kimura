@@ -19,6 +19,13 @@ function todayISO(offsetDays = 0): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** ISO date offset from a given ISO date (no DST drift — uses noon). */
+function todayISOfromISO(iso: string, offsetDays: number): string {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function BookingForm({ rooms, lang, initialRoom }: Props) {
   const t = (k: UIKey) => ui[lang][k] ?? ui.en[k] ?? k;
 
@@ -40,15 +47,17 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
   const [errorMsg, setErrorMsg] = useState('');
 
   const room = useMemo(() => rooms.find((r) => r.slug === roomSlug), [rooms, roomSlug]);
+  const isHalfDay = pkg === 'half_day';
 
   // Realtime availability for the selected room + dates (soft model). half_day is
   // same-day and never "fills a night", so we don't gate it.
-  const avail = useRoomAvailability(roomSlug, checkIn, checkOut, pkg !== 'half_day');
+  const avail = useRoomAvailability(roomSlug, checkIn, checkOut, !isHalfDay);
 
   const estimate = useMemo(() => {
     if (!room) return null;
-    return estimateTotal(room, pkg, checkIn, checkOut);
-  }, [room, pkg, checkIn, checkOut]);
+    // For half_day the range is the single check-in day.
+    return estimateTotal(room, pkg, checkIn, isHalfDay ? checkIn : checkOut);
+  }, [room, pkg, checkIn, checkOut, isHalfDay]);
 
   // Packages actually offered by the selected room.
   const availablePackages = useMemo(() => {
@@ -68,8 +77,20 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
     }
   }, [availablePackages, pkg]);
 
+  // Normalise dates on package switch: half_day → single day (out = in);
+  // overnight → ensure out > in. Fixes the stale/range-into-single-day bugs.
+  function changePackage(next: StayPackage) {
+    setPkg(next);
+    if (next === 'half_day') {
+      setCheckOut(checkIn);
+    } else if (checkOut <= checkIn) {
+      // Overnight needs at least one night.
+      setCheckOut(todayISOfromISO(checkIn, 1));
+    }
+  }
+
   // Overnight packages need check_out > check_in; half_day is same-day.
-  const dateInvalid = pkg !== 'half_day' && checkOut <= checkIn;
+  const dateInvalid = !isHalfDay && checkOut <= checkIn;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -146,7 +167,7 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
           </div>
           <div>
             <label className={labelCls}>{t('book.package')}</label>
-            <select value={pkg} onChange={(e) => setPkg(e.target.value as StayPackage)} className={inputCls}>
+            <select value={pkg} onChange={(e) => changePackage(e.target.value as StayPackage)} className={inputCls}>
               {availablePackages.map((p) => (
                 <option key={p} value={p}>{ui[lang][`pkg.${p}` as UIKey]}</option>
               ))}
@@ -154,33 +175,45 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
           </div>
         </div>
 
-        {/* Dates — calendar range picker */}
+        {/* Dates — calendar. Range for overnight packages, single day for half-day. */}
         <div>
-          <label className={labelCls}>{t('book.dates')}</label>
+          <label className={labelCls}>
+            {t('book.dates')}
+            <span className="ml-2 font-normal text-muted-foreground">
+              {isHalfDay
+                ? (lang === 'id' ? '· sehari' : '· same day')
+                : (lang === 'id' ? '· rentang' : '· range')}
+            </span>
+          </label>
           <div className="rounded-xl border border-border bg-card/50 p-4">
             <DateRangeCalendar
               checkIn={checkIn}
-              checkOut={pkg === 'half_day' ? '' : checkOut}
+              checkOut={isHalfDay ? '' : checkOut}
+              singleMode={isHalfDay}
               onChange={(inIso, outIso) => {
                 setCheckIn(inIso);
-                if (pkg !== 'half_day') setCheckOut(outIso || inIso);
+                setCheckOut(isHalfDay ? inIso : outIso);
               }}
               locale={lang}
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <span className="text-muted-foreground">
-              {t('book.checkin')}: <span className="font-medium text-foreground">{checkIn}</span>
-              {pkg !== 'half_day' && (
+              {isHalfDay ? (
+                <>{t('book.checkin')}: <span className="font-medium text-foreground">{checkIn}</span></>
+              ) : (
                 <>
+                  {t('book.checkin')}: <span className="font-medium text-foreground">{checkIn}</span>
                   {' '}· {t('book.checkout')}: <span className="font-medium text-foreground">{checkOut}</span>
-                  {estimate && <> · {estimate.quantity} {t('book.nights')}</>}
                 </>
+              )}
+              {estimate && (
+                <> · {estimate.quantity} {ui[lang][`unit.${pkg}` as UIKey] ?? ''}</>
               )}
             </span>
           </div>
           {/* Realtime availability indicator */}
-          <AvailabilityBadge avail={avail} lang={lang} />
+          <AvailabilityBadge avail={avail} lang={lang} halfDay={isHalfDay} />
         </div>
 
         {/* Guest */}
@@ -252,7 +285,7 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
             <div className="flex justify-between"><dt className="text-muted-foreground">{t('book.package')}</dt><dd>{ui[lang][`pkg.${pkg}` as UIKey]}</dd></div>
             {estimate && (
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">{formatIDR(estimate.unit)} × {estimate.quantity}</dt>
+                <dt className="text-muted-foreground">{formatIDR(estimate.unit)} × {estimate.quantity} {ui[lang][`unit.${pkg}` as UIKey]}</dt>
                 <dd>{formatIDR(estimate.total)}</dd>
               </div>
             )}
@@ -282,7 +315,11 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
 }
 
 /** Realtime availability indicator under the date calendar. */
-function AvailabilityBadge({ avail, lang }: { avail: ReturnType<typeof useRoomAvailability>; lang: Lang }) {
+function AvailabilityBadge({ avail, lang, halfDay }: {
+  avail: ReturnType<typeof useRoomAvailability>;
+  lang: Lang;
+  halfDay: boolean;
+}) {
   const t = (k: UIKey) => ui[lang][k] as string;
   let cls = 'bg-muted text-muted-foreground';
   let text: string;
@@ -290,7 +327,10 @@ function AvailabilityBadge({ avail, lang }: { avail: ReturnType<typeof useRoomAv
 
   switch (avail.status) {
     case 'idle':
-      text = t('book.avail.select_dates');
+      // half-day skips the inventory check by design; don't prompt for dates.
+      text = halfDay
+        ? (lang === 'id' ? 'Ketersediaan same-day dikonfirmasi staf.' : 'Same-day availability confirmed by staff.')
+        : t('book.avail.select_dates');
       break;
     case 'checking':
       text = t('book.avail.checking');
