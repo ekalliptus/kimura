@@ -149,43 +149,59 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
   const labelCls = 'mb-1.5 block text-sm font-medium';
   const inputCls =
     'w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20';
+  const stepCls = 'mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
+  const fmtDay = (iso: string) =>
+    new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(iso + 'T12:00:00'));
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-sm">
-        {/* Room + package */}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className={labelCls}>{t('book.room')}</label>
-            <select value={roomSlug} onChange={(e) => setRoomSlug(e.target.value)} className={inputCls}>
-              {rooms.map((r) => (
-                <option key={r.slug} value={r.slug}>
-                  {lang === 'id' ? r.name_id ?? r.name : r.name}
-                </option>
-              ))}
-            </select>
+    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="space-y-8 rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
+        {/* Step 1 — Stay */}
+        <section>
+          <h2 className={stepCls}><span className="flex size-5 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent">1</span>{lang === 'id' ? 'Pilih kamar & durasi' : 'Choose room & duration'}</h2>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className={labelCls}>{t('book.room')}</label>
+              <select value={roomSlug} onChange={(e) => setRoomSlug(e.target.value)} className={inputCls}>
+                {rooms.map((r) => (
+                  <option key={r.slug} value={r.slug}>
+                    {lang === 'id' ? r.name_id ?? r.name : r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>{t('book.package')}</label>
+              <select value={pkg} onChange={(e) => changePackage(e.target.value as StayPackage)} className={inputCls}>
+                {availablePackages.map((p) => (
+                  <option key={p} value={p}>{ui[lang][`pkg.${p}` as UIKey]}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className={labelCls}>{t('book.package')}</label>
-            <select value={pkg} onChange={(e) => changePackage(e.target.value as StayPackage)} className={inputCls}>
-              {availablePackages.map((p) => (
-                <option key={p} value={p}>{ui[lang][`pkg.${p}` as UIKey]}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        </section>
 
-        {/* Dates — calendar. Range for overnight packages, single day for half-day. */}
-        <div>
-          <label className={labelCls}>
-            {t('book.dates')}
-            <span className="ml-2 font-normal text-muted-foreground">
-              {isHalfDay
-                ? (lang === 'id' ? '· sehari' : '· same day')
-                : (lang === 'id' ? '· rentang' : '· range')}
-            </span>
-          </label>
-          <div className="rounded-xl border border-border bg-card/50 p-4">
+        {/* Step 2 — Dates */}
+        <section>
+          <h2 className={stepCls}><span className="flex size-5 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent">2</span>{t('book.dates')}</h2>
+
+          {/* Selected-date pills */}
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-border bg-background px-4 py-2.5">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('book.checkin')}</div>
+              <div className="mt-0.5 font-display text-sm font-semibold">{fmtDay(checkIn)}</div>
+            </div>
+            <div className={`rounded-lg border px-4 py-2.5 ${isHalfDay ? 'border-dashed border-border/60 bg-muted/30' : 'border-border bg-background'}`}>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{isHalfDay ? (lang === 'id' ? 'Durasi' : 'Duration') : t('book.checkout')}</div>
+              <div className="mt-0.5 font-display text-sm font-semibold">
+                {isHalfDay
+                  ? (lang === 'id' ? 'Setengah hari' : 'Half day')
+                  : `${fmtDay(checkOut)}${estimate ? ` · ${estimate.quantity} ${ui[lang][`unit.${pkg}` as UIKey] ?? ''}` : ''}`}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background/40 p-4">
             <DateRangeCalendar
               checkIn={checkIn}
               checkOut={isHalfDay ? '' : checkOut}
@@ -197,57 +213,44 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
               locale={lang}
             />
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className="text-muted-foreground">
-              {isHalfDay ? (
-                <>{t('book.checkin')}: <span className="font-medium text-foreground">{checkIn}</span></>
-              ) : (
-                <>
-                  {t('book.checkin')}: <span className="font-medium text-foreground">{checkIn}</span>
-                  {' '}· {t('book.checkout')}: <span className="font-medium text-foreground">{checkOut}</span>
-                </>
-              )}
-              {estimate && (
-                <> · {estimate.quantity} {ui[lang][`unit.${pkg}` as UIKey] ?? ''}</>
-              )}
-            </span>
-          </div>
           {/* Realtime availability indicator */}
           <AvailabilityBadge avail={avail} lang={lang} halfDay={isHalfDay} />
-        </div>
+        </section>
 
-        {/* Guest */}
-        <div>
-          <label className={labelCls}>{t('book.name')} <span className="text-destructive">*</span></label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} required placeholder="—" />
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className={labelCls}>{t('book.email')} <span className="text-destructive">*</span></label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} required placeholder="you@email.com" />
+        {/* Step 3 — Guest details */}
+        <section>
+          <h2 className={stepCls}><span className="flex size-5 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent">3</span>{lang === 'id' ? 'Data tamu' : 'Guest details'}</h2>
+          <div className="space-y-5">
+            <div>
+              <label className={labelCls}>{t('book.name')} <span className="text-destructive">*</span></label>
+              <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} required placeholder={lang === 'id' ? 'Nama lengkap' : 'Full name'} />
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className={labelCls}>{t('book.email')} <span className="text-destructive">*</span></label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} required placeholder="you@email.com" />
+              </div>
+              <div>
+                <label className={labelCls}>{t('book.phone')} <span className="text-destructive">*</span></label>
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} required placeholder="08xx / +62" />
+              </div>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className={labelCls}>{t('book.adults')}</label>
+                <input type="number" min={1} max={room?.max_occupancy ?? 4} value={adults} onChange={(e) => setAdults(Number(e.target.value))} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>{t('book.children')}</label>
+                <input type="number" min={0} max={4} value={children} onChange={(e) => setChildren(Number(e.target.value))} className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>{t('book.requests')}</label>
+              <textarea value={requests} onChange={(e) => setRequests(e.target.value)} rows={3} className={inputCls} placeholder={lang === 'id' ? 'Permintaan khusus (opsional)' : 'Special requests (optional)'} />
+            </div>
           </div>
-          <div>
-            <label className={labelCls}>{t('book.phone')} <span className="text-destructive">*</span></label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} required placeholder="08xx / +62" />
-          </div>
-        </div>
-
-        {/* Occupancy */}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className={labelCls}>{t('book.adults')}</label>
-            <input type="number" min={1} max={room?.max_occupancy ?? 4} value={adults} onChange={(e) => setAdults(Number(e.target.value))} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>{t('book.children')}</label>
-            <input type="number" min={0} max={4} value={children} onChange={(e) => setChildren(Number(e.target.value))} className={inputCls} />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>{t('book.requests')}</label>
-          <textarea value={requests} onChange={(e) => setRequests(e.target.value)} rows={3} className={inputCls} />
-        </div>
+        </section>
       </div>
 
       {/* Summary */}
@@ -278,15 +281,34 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
               />
             </div>
           )}
-          <h3 className="font-display text-lg font-semibold">
+          <h3 className="font-display text-lg font-semibold leading-tight">
             {room ? (lang === 'id' ? room.name_id ?? room.name : room.name) : '—'}
           </h3>
+          {room && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {room.max_occupancy} {lang === 'id' ? 'tamu' : 'guests'}{room.bed_config ? ` · ${room.bed_config}` : ''}
+            </p>
+          )}
+
           <dl className="mt-4 space-y-2.5 text-sm">
-            <div className="flex justify-between"><dt className="text-muted-foreground">{t('book.package')}</dt><dd>{ui[lang][`pkg.${pkg}` as UIKey]}</dd></div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">{t('book.package')}</dt>
+              <dd className="text-right font-medium">{ui[lang][`pkg.${pkg}` as UIKey]}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">{isHalfDay ? t('book.checkin') : t('book.dates')}</dt>
+              <dd className="text-right font-medium">
+                {isHalfDay ? fmtDay(checkIn) : `${fmtDay(checkIn)} → ${fmtDay(checkOut)}`}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">{t('book.adults')}</dt>
+              <dd className="text-right font-medium">{adults}{children > 0 ? ` + ${children} ${t('book.children').toLowerCase()}` : ''}</dd>
+            </div>
             {estimate && (
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2 border-t border-dashed border-border pt-2.5">
                 <dt className="text-muted-foreground">{formatIDR(estimate.unit)} × {estimate.quantity} {ui[lang][`unit.${pkg}` as UIKey]}</dt>
-                <dd>{formatIDR(estimate.total)}</dd>
+                <dd className="text-right">{formatIDR(estimate.total)}</dd>
               </div>
             )}
           </dl>
@@ -295,6 +317,9 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
               <span className="text-sm text-muted-foreground">{t('book.estimate')}</span>
               <span className="font-display text-2xl font-bold text-accent">{formatIDR(estimate?.total ?? null)}</span>
             </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {lang === 'id' ? 'Belum termasuk konfirmasi. Bayar di lokasi.' : 'Estimate only — pay on arrival.'}
+            </p>
           </div>
 
           {status === 'error' && (
