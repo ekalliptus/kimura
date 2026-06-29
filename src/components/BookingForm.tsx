@@ -4,6 +4,8 @@ import type { Lang, UIKey } from '@/lib/i18n';
 import { ui } from '@/lib/i18n';
 import { PACKAGES, estimateTotal, formatIDR } from '@/lib/format';
 import type { StayPackage } from '@/lib/database.types';
+import DateRangeCalendar from '@/components/DateRangeCalendar';
+import { useRoomAvailability } from '@/lib/useAvailability';
 
 interface Props {
   rooms: RoomType[];
@@ -38,6 +40,10 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
   const [errorMsg, setErrorMsg] = useState('');
 
   const room = useMemo(() => rooms.find((r) => r.slug === roomSlug), [rooms, roomSlug]);
+
+  // Realtime availability for the selected room + dates (soft model). half_day is
+  // same-day and never "fills a night", so we don't gate it.
+  const avail = useRoomAvailability(roomSlug, checkIn, checkOut, pkg !== 'half_day');
 
   const estimate = useMemo(() => {
     if (!room) return null;
@@ -148,16 +154,33 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
           </div>
         </div>
 
-        {/* Dates */}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className={labelCls}>{t('book.checkin')}</label>
-            <input type="date" value={checkIn} min={todayISO()} onChange={(e) => { setCheckIn(e.target.value); if (checkOut < e.target.value) setCheckOut(e.target.value); }} className={inputCls} required />
+        {/* Dates — calendar range picker */}
+        <div>
+          <label className={labelCls}>{t('book.dates')}</label>
+          <div className="rounded-xl border border-border bg-card/50 p-4">
+            <DateRangeCalendar
+              checkIn={checkIn}
+              checkOut={pkg === 'half_day' ? '' : checkOut}
+              onChange={(inIso, outIso) => {
+                setCheckIn(inIso);
+                if (pkg !== 'half_day') setCheckOut(outIso || inIso);
+              }}
+              locale={lang}
+            />
           </div>
-          <div>
-            <label className={labelCls}>{t('book.checkout')}</label>
-            <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className={inputCls} required />
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="text-muted-foreground">
+              {t('book.checkin')}: <span className="font-medium text-foreground">{checkIn}</span>
+              {pkg !== 'half_day' && (
+                <>
+                  {' '}· {t('book.checkout')}: <span className="font-medium text-foreground">{checkOut}</span>
+                  {estimate && <> · {estimate.quantity} {t('book.nights')}</>}
+                </>
+              )}
+            </span>
           </div>
+          {/* Realtime availability indicator */}
+          <AvailabilityBadge avail={avail} lang={lang} />
         </div>
 
         {/* Guest */}
@@ -247,7 +270,7 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
 
           <button
             type="submit"
-            disabled={status === 'submitting' || dateInvalid}
+            disabled={status === 'submitting' || dateInvalid || avail.status === 'full'}
             className="mt-5 flex w-full items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {status === 'submitting' ? t('book.submitting') : t('book.submit')}
@@ -255,5 +278,45 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
         </div>
       </aside>
     </form>
+  );
+}
+
+/** Realtime availability indicator under the date calendar. */
+function AvailabilityBadge({ avail, lang }: { avail: ReturnType<typeof useRoomAvailability>; lang: Lang }) {
+  const t = (k: UIKey) => ui[lang][k] as string;
+  let cls = 'bg-muted text-muted-foreground';
+  let text: string;
+  let dot = '';
+
+  switch (avail.status) {
+    case 'idle':
+      text = t('book.avail.select_dates');
+      break;
+    case 'checking':
+      text = t('book.avail.checking');
+      break;
+    case 'ok':
+      text = `${t('book.avail.available')} — ${avail.available} ${t('book.avail.left')}`;
+      dot = avail.available <= 1 ? 'bg-amber-500' : 'bg-green-500';
+      cls = avail.available <= 1
+        ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200'
+        : 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-200';
+      break;
+    case 'full':
+      text = t('book.avail.full');
+      dot = 'bg-red-500';
+      cls = 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200';
+      break;
+    case 'error':
+      text = lang === 'id' ? 'Tidak dapat memeriksa ketersediaan.' : 'Could not check availability.';
+      break;
+  }
+
+  return (
+    <div className={`mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${cls}`}>
+      {dot && <span className={`size-2 rounded-full ${dot}`} />}
+      {avail.status === 'checking' && <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />}
+      {text}
+    </div>
   );
 }
