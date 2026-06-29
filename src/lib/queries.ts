@@ -40,3 +40,33 @@ export async function getRoomType(slug: string, env: Cloudflare.Env = getEnv()):
   }
   return data;
 }
+
+export async function getRoomAvailability(
+  slug: string,
+  checkIn: string,
+  checkOut: string,
+  env: Cloudflare.Env = getEnv()
+): Promise<{ total: number; booked: number; available: number } | null> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    console.warn('[getRoomAvailability] Missing Supabase credentials');
+    return null;
+  }
+  try {
+    const supabase = publicClient(env);
+    const { data, error } = await supabase
+      .rpc('room_type_availability', {
+        p_slug: slug,
+        p_check_in: checkIn,
+        p_check_out: checkOut,
+      })
+      .maybeSingle();
+    if (error) {
+      console.error('[getRoomAvailability]', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[getRoomAvailability] Exception:', err);
+    return null;
+  }
+}

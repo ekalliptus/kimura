@@ -149,6 +149,55 @@
   --color-indigo-ink: oklch(0.42 0.06 250);
 }
 
+/* =========================================================================
+   Admin panel overrides — ivory (light) · matte (dark)
+   Inherits brand accent (clay), fonts, and ramps from root. Only overrides
+   the background/surface/border tokens for a distinct admin feel.
+   ========================================================================= */
+
+.admin-panel {
+  /* Ivory light: warm creamy white, slightly richer than washi */
+  --background: oklch(0.965 0.012 85);
+  --foreground: oklch(0.2 0.01 67);
+
+  --card: oklch(0.985 0.008 85);
+  --card-foreground: oklch(0.2 0.01 67);
+  --popover: oklch(0.985 0.008 85);
+  --popover-foreground: oklch(0.2 0.01 67);
+
+  --secondary: oklch(0.94 0.012 82);
+  --secondary-foreground: oklch(0.2 0.01 67);
+
+  --muted: oklch(0.94 0.012 82);
+  --muted-foreground: oklch(0.5 0.015 70);
+
+  --border: oklch(0.9 0.012 80);
+  --input: oklch(0.9 0.012 80);
+}
+
+.dark .admin-panel {
+  /* Matte dark: flat desaturated charcoal, zero shine, low contrast borders */
+  --background: oklch(0.18 0.005 67);
+  --foreground: oklch(0.92 0.008 83);
+
+  --card: oklch(0.22 0.006 67);
+  --card-foreground: oklch(0.92 0.008 83);
+  --popover: oklch(0.22 0.006 67);
+  --popover-foreground: oklch(0.92 0.008 83);
+
+  --primary: oklch(0.92 0.008 83);
+  --primary-foreground: oklch(0.22 0.006 67);
+
+  --secondary: oklch(0.26 0.007 67);
+  --secondary-foreground: oklch(0.92 0.008 83);
+
+  --muted: oklch(0.26 0.007 67);
+  --muted-foreground: oklch(0.62 0.01 75);
+
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

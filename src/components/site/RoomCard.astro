@@ -3,6 +3,7 @@ import type { RoomType } from '@/lib/database.types';
 import type { Lang } from '@/lib/i18n';
 import { useTranslations } from '@/lib/i18n';
 import { fromPrice, formatIDR } from '@/lib/format';
+import { getRoomAvailability } from '@/lib/queries';
 
 interface Props {
   room: RoomType;
@@ -16,6 +17,20 @@ const name = lang === 'id' ? (room.name_id ?? room.name) : room.name;
 const desc = lang === 'id' ? (room.description_id ?? room.description) : room.description;
 const cover = room.images?.[0];
 const price = fromPrice(room);
+
+// Fetch availability tonight (Jakarta UTC+7)
+const d = new Date();
+const jakartaTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+const checkIn = jakartaTime.toISOString().slice(0, 10);
+const tomorrow = new Date(jakartaTime.getTime() + 24 * 60 * 60 * 1000);
+const checkOut = tomorrow.toISOString().slice(0, 10);
+
+const avail = await getRoomAvailability(room.slug, checkIn, checkOut);
+const available = avail?.available ?? 0;
+const hasAvailability = avail !== null;
+
+const showFullyBooked = hasAvailability && available <= 0;
+const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
 ---
 
 <article
@@ -42,6 +57,20 @@ const price = fromPrice(room);
       room.featured && (
         <span class="absolute left-3 top-3 rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">
           {t('rooms.featured')}
+        </span>
+      )
+    }
+    {
+      showFullyBooked && (
+        <span class="absolute right-3 top-3 rounded-full bg-sumi-800 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-sumi-50 border border-sumi-700/50 backdrop-blur-xs">
+          {lang === 'id' ? 'Penuh' : 'Fully Booked'}
+        </span>
+      )
+    }
+    {
+      showOnlyOneLeft && (
+        <span class="absolute right-3 top-3 rounded-full bg-indigo-ink px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-clay-100 border border-clay-500/30 backdrop-blur-xs">
+          {lang === 'id' ? 'Sisa 1 kamar' : 'Only 1 left'}
         </span>
       )
     }
