@@ -166,6 +166,13 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
     return new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
   };
 
+  // Unit label for a quantity, e.g. "night"/"nights". English adds -s when >1;
+  // Indonesian has no plural form, so the base label is returned unchanged.
+  const unitLabel = (qty: number) => {
+    const base = ui[lang][`unit.${pkg}` as UIKey] ?? '';
+    return lang === 'en' && qty !== 1 ? `${base}s` : base;
+  };
+
   return (
     <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_340px]">
       <div className="space-y-8 rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
@@ -209,7 +216,7 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
               <div className="mt-0.5 font-display text-sm font-semibold">
                 {isHalfDay
                   ? (lang === 'id' ? 'Setengah hari' : 'Half day')
-                  : `${fmtDay(checkOut)}${estimate ? ` · ${estimate.quantity} ${ui[lang][`unit.${pkg}` as UIKey] ?? ''}` : ''}`}
+                  : `${fmtDay(checkOut)}${estimate ? ` · ${estimate.quantity} ${unitLabel(estimate.quantity)}` : ''}`}
               </div>
             </div>
           </div>
@@ -321,7 +328,7 @@ export default function BookingForm({ rooms, lang, initialRoom }: Props) {
             </div>
             {estimate && (
               <div className="flex justify-between gap-2 border-t border-dashed border-border pt-2.5">
-                <dt className="text-muted-foreground">{formatIDR(estimate.unit)} × {estimate.quantity} {ui[lang][`unit.${pkg}` as UIKey]}</dt>
+                <dt className="text-muted-foreground">{formatIDR(estimate.unit)} × {estimate.quantity} {unitLabel(estimate.quantity)}</dt>
                 <dd className="text-right">{formatIDR(estimate.total)}</dd>
               </div>
             )}
