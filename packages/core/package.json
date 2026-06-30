@@ -1,0 +1,21 @@
+{
+  "name": "@kimura/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./database.types": "./src/database.types.ts",
+    "./format": "./src/format.ts",
+    "./hotel": "./src/hotel.ts",
+    "./i18n": "./src/i18n.ts",
+    "./img": "./src/img.ts",
+    "./utils": "./src/utils.ts",
+    "./supabase": "./src/supabase.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.6.0"
+  }
+}

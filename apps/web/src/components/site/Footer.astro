@@ -1,0 +1,45 @@
+---
+import { getLangFromUrl, useTranslations } from '@kimura/core/i18n';
+import { HOTEL } from '@kimura/core/hotel';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const q = lang === 'en' ? '?lang=en' : '';
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-border/60 bg-secondary/30">
+  <div class="mx-auto max-w-6xl px-5 py-16 sm:py-20">
+    <div class="grid gap-10 md:grid-cols-4">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-9 items-center justify-center rounded-md bg-primary font-display text-lg font-bold text-primary-foreground">木</span>
+          <span class="font-display text-lg font-semibold">Kimura Kostay</span>
+        </div>
+        <p class="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {t('footer.tagline')}
+        </p>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('nav.contact')}</h4>
+        <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li><a href={`tel:${HOTEL.phone}`} class="rounded-sm tabular-nums transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{HOTEL.phoneDisplay}</a></li>
+          <li><a href={`mailto:${HOTEL.email}`} class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{HOTEL.email}</a></li>
+          <li class="pt-1 tabular-nums">{t('contact.checkin')}: {HOTEL.checkIn} · {t('contact.checkout')}: {HOTEL.checkOut}</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('nav.location')}</h4>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">{HOTEL.address}</p>
+        <a href={HOTEL.mapsUrl} target="_blank" rel="noopener" aria-label={`${t('location.directions')}${lang === 'id' ? ' (buka di tab baru)' : ' (opens in a new tab)'}`} class="group mt-3 inline-flex items-center gap-1.5 rounded-sm text-sm text-accent transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{t('location.directions')}<span aria-hidden="true" class="transition-transform duration-300 group-hover:translate-x-1">→</span></a>
+      </div>
+    </div>
+
+    <div class="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row">
+      <p>© {year} Kimura Kostay. {t('footer.rights')}</p>
+      <a href={`/admin${q}`} class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">Admin</a>
+    </div>
+  </div>
+</footer>

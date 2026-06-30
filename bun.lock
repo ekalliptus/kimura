@@ -4,9 +4,17 @@
   "workspaces": {
     "": {
       "name": "planetary-point",
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "apps/web": {
+      "name": "@kimura/web",
+      "version": "0.0.1",
       "dependencies": {
         "@astrojs/cloudflare": "^14.0.1",
         "@astrojs/react": "^6.0.0",
+        "@kimura/core": "workspace:*",
         "@supabase/ssr": "^0.12.0",
         "@supabase/supabase-js": "^2.108.2",
         "@tailwindcss/vite": "^4.3.1",
@@ -32,6 +40,16 @@
         "@types/geojson": "^7946.0.16",
         "@types/node": "^26.0.1",
         "typescript": "^6.0.3",
+      },
+    },
+    "packages/core": {
+      "name": "@kimura/core",
+      "version": "0.0.1",
+      "dependencies": {
+        "@supabase/ssr": "^0.12.0",
+        "@supabase/supabase-js": "^2.108.2",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.6.0",
       },
     },
   },
@@ -299,6 +317,10 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@kimura/core": ["@kimura/core@workspace:packages/core"],
+
+    "@kimura/web": ["@kimura/web@workspace:apps/web"],
 
     "@mapbox/jsonlint-lines-primitives": ["@mapbox/jsonlint-lines-primitives@2.0.3", "", {}, "sha512-0SElaV0uMxEnxzBhhX9WTuPyUeMsAN/SS0i16tjuba4/mio63MG9khjC1a0JAiPGXAwvwm4UfHJURCN7nyudQg=="],
 

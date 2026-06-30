@@ -1,0 +1,108 @@
+---
+import '@/styles/global.css';
+import { getLangFromUrl } from '@kimura/core/i18n';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  preloadImage?: string;
+}
+
+const { title, description, ogImage, preloadImage } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+
+const fullTitle = title ? `${title} · Kimura Kostay` : 'Kimura Kostay — Semarang';
+const desc =
+  description ??
+  (lang === 'id'
+    ? 'Penginapan minimalis ala Jepang di Semarang. Paket setengah hari hingga bulanan.'
+    : 'A Japanese-minimalist stay in Semarang. Packages from half-day to monthly.');
+const image = ogImage ?? 'https://h-img1.cloudbeds.com/uploads/171276/9~~69b7c88371551.jpg';
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+---
+
+<!doctype html>
+<html lang={lang} class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={desc} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Warm the image CDN early so the LCP hero fetch starts sooner -->
+    <link rel="preconnect" href="https://h-img1.cloudbeds.com" crossorigin />
+    <link rel="dns-prefetch" href="https://h-img1.cloudbeds.com" />
+    {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={image} />
+    <meta property="og:site_name" content="Kimura Kostay" />
+    <meta property="og:locale" content={lang === 'id' ? 'id_ID' : 'en_US'} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={desc} />
+    <meta name="twitter:image" content={image} />
+
+    <!-- Brand fonts: Shippori Mincho (display, 600/700) + Plus Jakarta Sans (body). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Set theme before paint to avoid flash -->
+    <script is:inline>
+      (() => {
+        const saved = localStorage.getItem('theme');
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
+
+    <!-- No-JS / pre-hydration safety net: never let a [data-reveal] image stay
+         hidden. The reveal script below removes opacity-0 once each image is
+         decoded; this guarantees visibility if that script never runs. -->
+    <noscript><style>img[data-reveal]{opacity:1!important}</style></noscript>
+  </head>
+  <body class="min-h-screen bg-background text-foreground">
+    <slot />
+
+    <!-- Robust image reveal. Inline onload is unreliable for preloaded /
+         already-cached images (the load event can fire before the handler
+         attaches), which left the LCP hero stuck at opacity-0. This instead
+         checks img.complete first (reveal now) and falls back to load/error
+         listeners, covering lazy images that decode later too. -->
+    <script is:inline>
+      (() => {
+        const reveal = (img) => {
+          img.classList.remove('opacity-0', 'blur-xl', 'blur-lg', 'blur-md');
+          const p = img.parentElement;
+          if (p) p.classList.remove('animate-pulse');
+        };
+        const wire = (img) => {
+          if (img.complete && img.naturalWidth > 0) { reveal(img); return; }
+          img.addEventListener('load', () => reveal(img), { once: true });
+          // Reveal on error too, so a failed transform never leaves a blank box.
+          img.addEventListener('error', () => reveal(img), { once: true });
+        };
+        const run = () => document.querySelectorAll('img[data-reveal]').forEach(wire);
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', run, { once: true });
+        } else {
+          run();
+        }
+      })();
+    </script>
+  </body>
+</html>

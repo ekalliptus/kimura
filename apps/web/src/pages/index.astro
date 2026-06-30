@@ -1,0 +1,285 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/site/Header.astro';
+import Footer from '@/components/site/Footer.astro';
+import RoomCard from '@/components/site/RoomCard.astro';
+import SemarangMap from '@/components/SemarangMap.tsx';
+import { getLangFromUrl, useTranslations } from '@kimura/core/i18n';
+import { getRoomTypes } from '@/lib/queries';
+import { HOTEL } from '@kimura/core/hotel';
+import { cdnImage, cdnSrcset } from '@kimura/core/img';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const q = lang === 'en' ? '?lang=en' : '';
+
+const rooms = await getRoomTypes();
+const featured = rooms.filter((r) => r.featured).slice(0, 3);
+// Hero slideshow: cover image of every room type, deduped, order preserved.
+const heroSources = [
+  ...new Set(rooms.map((r) => r.images?.[0]).filter((s): s is string => !!s)),
+];
+if (heroSources.length === 0) {
+  heroSources.push('https://h-img1.cloudbeds.com/uploads/171276/9~~69b7c88371551.jpg');
+}
+const heroImg = cdnImage(heroSources[0], 1920, 82); // first slide = LCP, preloaded
+
+const packages = ['half_day', 'daily', 'weekly', 'monthly'] as const;
+const bookHref = (pkg: string) => `/book?${lang === 'en' ? 'lang=en&' : ''}package=${pkg}`;
+
+const heroLines = t('hero.title').split('\n');
+---
+
+<BaseLayout preloadImage={heroImg}>
+  <Header />
+
+  <main>
+    <!-- ===================== HERO ===================== -->
+    <section class="relative overflow-hidden">
+      <div class="absolute inset-0 animate-pulse bg-muted" data-hero-slideshow>
+        {
+          heroSources.map((src, i) =>
+            i === 0 ? (
+              <img
+                src={heroImg}
+                srcset={cdnSrcset(src, [640, 800, 1280, 1920], 82)}
+                sizes="100vw"
+                alt="Kimura Kostay guest room interior"
+                fetchpriority="high"
+                decoding="async"
+                width="1920"
+                height="1080"
+                data-reveal
+                class="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-1000 ease-out"
+              />
+            ) : (
+              <img
+                data-src={cdnImage(src, 1920, 82)}
+                data-srcset={cdnSrcset(src, [640, 800, 1280, 1920], 82)}
+                sizes="100vw"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                width="1920"
+                height="1080"
+                class="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-1000 ease-out"
+              />
+            )
+          )
+        }
+        <div class="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+      </div>
+
+      <div class="relative mx-auto flex min-h-[88vh] max-w-6xl flex-col justify-center px-5 py-24">
+        <span class="rule-jp mb-6">{t('hero.kicker')}</span>
+        <h1 class="max-w-2xl font-display text-5xl font-bold leading-[1.08] tracking-tight sm:text-6xl md:text-7xl">
+          {heroLines.map((line, i) => (<span class="block">{line}{i === 0 && <span class="text-accent">.</span>}</span>))}
+        </h1>
+        <p class="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">{t('hero.subtitle')}</p>
+
+        <div class="mt-9 flex flex-wrap gap-3">
+          <a href={`/rooms${q}`} class="group inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            {t('hero.cta')}
+            <span aria-hidden="true" class="text-base transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </a>
+          <a href={`/book${q}`} class="inline-flex items-center rounded-md border border-border bg-background/60 px-6 py-3 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            {t('hero.cta2')}
+          </a>
+        </div>
+
+        <div class="mt-16 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          <span class="flex items-center gap-2"><span class="tabular-nums text-foreground">8</span> {lang === 'id' ? 'tipe kamar' : 'room types'}</span>
+          <span aria-hidden="true" class="hidden h-3 w-px bg-border sm:inline-block"></span>
+          <span>{HOTEL.addressShort}</span>
+          <span aria-hidden="true" class="hidden h-3 w-px bg-border sm:inline-block"></span>
+          <span class="flex items-center gap-2">{t('contact.checkin')} <span class="tabular-nums text-foreground">{HOTEL.checkIn}</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PACKAGES ===================== -->
+    <section id="packages" class="mx-auto max-w-5xl scroll-mt-20 px-5 py-24 sm:py-32">
+      <div class="max-w-2xl">
+        <span class="rule-jp">036°</span>
+        <h2 class="mt-5 font-display text-3xl font-bold sm:text-4xl">{t('packages.title')}</h2>
+        <p class="mt-3 text-muted-foreground">{t('packages.subtitle')}</p>
+      </div>
+
+      <ul class="mt-14 border-t border-border">
+        {
+          packages.map((p, i) => (
+            <li>
+              <a
+                href={bookHref(p)}
+                class="group grid grid-cols-[auto_1fr_auto] items-center gap-x-5 gap-y-1 border-b border-border py-7 transition-colors hover:bg-secondary/40 sm:gap-x-8 sm:py-8"
+              >
+                <span class="font-display text-sm tabular-nums text-muted-foreground/70 transition-colors group-hover:text-accent">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <div class="min-w-0">
+                  <h3 class="font-display text-xl font-semibold sm:text-2xl">
+                    {t(`pkg.${p}` as any)}
+                    <span class="ml-2 align-middle text-xs font-normal uppercase tracking-[0.2em] text-muted-foreground">
+                      / {t(`unit.${p}` as any)}
+                    </span>
+                  </h3>
+                  <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {t(`pkg.${p}.desc` as any)}
+                  </p>
+                </div>
+                <span
+                  aria-hidden="true"
+                  class="text-xl text-muted-foreground/50 transition-all duration-300 group-hover:translate-x-1 group-hover:text-accent"
+                >
+                  →
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <!-- ===================== FEATURED ROOMS ===================== -->
+    <section class="border-y border-border/60 bg-secondary/20">
+      <div class="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span class="rule-jp">{t('nav.rooms')}</span>
+            <h2 class="mt-5 font-display text-3xl font-bold sm:text-4xl">{t('rooms.title')}</h2>
+            <p class="mt-3 max-w-md text-muted-foreground">{t('rooms.subtitle')}</p>
+          </div>
+          <a href={`/rooms${q}`} class="group inline-flex items-center gap-2 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            {lang === 'id' ? 'Semua Kamar' : 'All Rooms'}
+            <span aria-hidden="true" class="text-base transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </a>
+        </div>
+
+        {
+          featured.length > 0 ? (
+            <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((room) => <RoomCard room={room} lang={lang} />)}
+            </div>
+          ) : (
+            <div class="mt-14 rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
+              {lang === 'id'
+                ? 'Belum ada kamar. Jalankan migrasi & seed database, lalu muat ulang.'
+                : 'No rooms yet. Run the DB migrations & seed, then reload.'}
+            </div>
+          )
+        }
+      </div>
+    </section>
+
+    <!-- ===================== LOCATION ===================== -->
+    <section id="location" class="mx-auto max-w-6xl scroll-mt-20 px-5 py-24 sm:py-32">
+      <div class="grid items-center gap-10 lg:grid-cols-2">
+        <div>
+          <span class="rule-jp">{t('nav.location')}</span>
+          <h2 class="mt-5 font-display text-3xl font-bold sm:text-4xl">{t('location.title')}</h2>
+          <p class="mt-3 max-w-md leading-relaxed text-muted-foreground">{HOTEL.address}</p>
+          <dl class="mt-8 border-t border-border text-sm">
+            <div class="grid grid-cols-[7rem_1fr] items-baseline gap-x-5 border-b border-border py-3.5">
+              <dt class="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t('contact.phone')}</dt>
+              <dd><a href={`tel:${HOTEL.phone}`} class="rounded-sm font-medium tabular-nums transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{HOTEL.phoneDisplay}</a></dd>
+            </div>
+            <div class="grid grid-cols-[7rem_1fr] items-baseline gap-x-5 border-b border-border py-3.5">
+              <dt class="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t('contact.email')}</dt>
+              <dd><a href={`mailto:${HOTEL.email}`} class="rounded-sm font-medium transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{HOTEL.email}</a></dd>
+            </div>
+            <div class="grid grid-cols-[7rem_1fr] items-baseline gap-x-5 border-b border-border py-3.5">
+              <dt class="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t('contact.checkin')}</dt>
+              <dd class="font-medium tabular-nums">{HOTEL.checkIn}</dd>
+            </div>
+            <div class="grid grid-cols-[7rem_1fr] items-baseline gap-x-5 border-b border-border py-3.5">
+              <dt class="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t('contact.checkout')}</dt>
+              <dd class="font-medium tabular-nums">{HOTEL.checkOut}</dd>
+            </div>
+          </dl>
+          <a href={HOTEL.mapsUrl} target="_blank" rel="noopener" aria-label={`${t('location.directions')}${lang === 'id' ? ' (buka di tab baru)' : ' (opens in a new tab)'}`} class="group mt-10 inline-flex items-center gap-2 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            {t('location.directions')}
+            <span aria-hidden="true" class="text-base transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </a>
+        </div>
+
+        <SemarangMap client:only="react" />
+      </div>
+    </section>
+
+    <!-- ===================== CONTACT / CTA ===================== -->
+    <section id="contact" class="border-t border-border/60 bg-primary text-primary-foreground">
+      <div class="mx-auto max-w-4xl scroll-mt-20 px-5 py-24 text-center sm:py-32">
+        <span class="block font-display text-5xl">木</span>
+        <span class="rule-jp mt-6 text-primary-foreground/60">{t('nav.contact')}</span>
+        <h2 class="mt-5 font-display text-3xl font-bold sm:text-4xl">
+          {lang === 'id' ? 'Siap untuk menginap dengan tenang?' : 'Ready for a quiet stay?'}
+        </h2>
+        <p class="mx-auto mt-3 max-w-lg text-primary-foreground/70">
+          {lang === 'id'
+            ? 'Pesan langsung dan tim kami akan mengonfirmasi reservasi Anda.'
+            : 'Book directly and our team will confirm your reservation.'}
+        </p>
+        <div class="mt-10 flex flex-wrap justify-center gap-3">
+          <a href={`/book${q}`} class="group inline-flex items-center gap-2 rounded-md bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary">
+            {t('nav.book')}
+            <span aria-hidden="true" class="text-base transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </a>
+          <a href={`tel:${HOTEL.phone}`} class="inline-flex items-center rounded-md border border-primary-foreground/25 px-6 py-3 text-sm font-medium tabular-nums transition-colors hover:bg-primary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-primary">
+            {HOTEL.phoneDisplay}
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <!-- Hero crossfade slideshow. First slide is the eager LCP image (revealed by
+       BaseLayout's reveal script — works with no JS). Extra slides load only
+       after window.load so they never compete with LCP, then crossfade on a
+       timer. Honors prefers-reduced-motion (stays on the first slide). -->
+  <script>
+    (() => {
+      const box = document.querySelector('[data-hero-slideshow]');
+      if (!box) return;
+      const slides = Array.from(box.querySelectorAll('img'));
+      if (slides.length < 2) return;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const load = (img: HTMLImageElement) => {
+        if (img.dataset.src && !img.src) {
+          if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+          img.src = img.dataset.src;
+        }
+      };
+
+      let i = 0;
+      const show = (n: number) => {
+        const cur = slides[i];
+        const next = slides[n];
+        load(next);
+        next.style.opacity = '1';
+        cur.style.opacity = '0';
+        i = n;
+      };
+
+      const start = () => {
+        slides[0].style.opacity = '1'; // take ownership from the reveal script
+        let n = 1;
+        // Warm the next slide ahead of its turn so the crossfade hits a decoded image.
+        load(slides[1]);
+        setInterval(() => {
+          const next = (n + 1) % slides.length;
+          show(n);
+          load(slides[next]);
+          n = next;
+        }, 6000);
+      };
+
+      if (document.readyState === 'complete') start();
+      else window.addEventListener('load', start, { once: true });
+    })();
+  </script>
+</BaseLayout>
