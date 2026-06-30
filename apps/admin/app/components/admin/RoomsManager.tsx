@@ -3,6 +3,7 @@ import type { Room, RoomState, RoomType } from '@kimura/core/database.types';
 import { formatIDR } from '@kimura/core/format';
 import type { AdminLang } from '~/lib/admin-i18n';
 import { t as tr } from '~/lib/admin-i18n';
+import ImageUploader from './ImageUploader';
 
 interface Props {
   roomTypes: RoomType[];
@@ -40,6 +41,7 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
   const [draft, setDraft] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [creating, setCreating] = useState<'type' | 'room' | null>(null);
+  const [editType, setEditType] = useState<RoomType | null>(null);
 
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
 
@@ -123,7 +125,19 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
             <tbody className="divide-y divide-border">
               {types.map((rt) => (
                 <tr key={rt.id} className="hover:bg-secondary/40">
-                  <td className="px-4 py-3"><div className="font-medium">{rt.name}</div><div className="text-xs text-muted-foreground">{rt.size_sqm} m² · {rt.max_occupancy} {tr(lang, 'rm.guests')}</div></td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => setEditType(rt)} className="group flex items-center gap-2 text-left">
+                      {rt.images?.[0] ? (
+                        <img src={rt.images[0]} alt="" className="size-9 shrink-0 rounded-md object-cover" />
+                      ) : (
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground">＋</span>
+                      )}
+                      <span>
+                        <span className="block font-medium group-hover:text-accent">{rt.name}</span>
+                        <span className="block text-xs text-muted-foreground">{rt.size_sqm} m² · {rt.max_occupancy} {tr(lang, 'rm.guests')}</span>
+                      </span>
+                    </button>
+                  </td>
                   {PRICE_FIELDS.map((f) => {
                     const isEditing = editing?.id === rt.id && editing.field === f.key;
                     const val = rt[f.key];
@@ -157,7 +171,7 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
               ))}
             </tbody>
           </table>
-          <p className="border-t border-border px-4 py-2.5 text-xs text-muted-foreground">{tr(lang, 'rm.price_hint')}</p>
+          <p className="border-t border-border px-4 py-2.5 text-xs text-muted-foreground">{tr(lang, 'rm.price_hint')} · {tr(lang, 'rm.edit_type_hint')}</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -197,7 +211,20 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
         />
       )}
 
-      {toast && <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-lg">{toast}</div>}
+      {editType && (
+        <EditTypeDialog
+          roomType={editType}
+          lang={lang}
+          onClose={() => setEditType(null)}
+          onSaved={(images) => {
+            setTypes((p) => p.map((tt) => (tt.id === editType.id ? { ...tt, images } : tt)));
+            setEditType(null);
+            flash(tr(lang, 'rm.images_updated'));
+          }}
+        />
+      )}
+
+      {toast &&<div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-lg">{toast}</div>}
     </div>
   );
 }
@@ -225,6 +252,8 @@ function CreateDialog({ kind, lang, roomTypes, onClose, onCreatedType, onCreated
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [uploadBusy, setUploadBusy] = useState(false);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -246,7 +275,7 @@ function CreateDialog({ kind, lang, roomTypes, onClose, onCreatedType, onCreated
           max_occupancy: Number(fd.get('max_occupancy') ?? 2) || 2,
           bed_config: String(fd.get('bed_config') ?? '').trim(),
           amenities: String(fd.get('amenities') ?? '').split(',').map((s) => s.trim()).filter(Boolean),
-          images: String(fd.get('images') ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+          images,
           price_half_day: num(String(fd.get('price_half_day') ?? '')),
           price_daily: num(String(fd.get('price_daily') ?? '')),
           price_weekly: num(String(fd.get('price_weekly') ?? '')),
@@ -326,7 +355,7 @@ function CreateDialog({ kind, lang, roomTypes, onClose, onCreatedType, onCreated
                 {field(tr(lang, 'rm.f_bed'), <input name="bed_config" className={inputCls} placeholder="King / Twin / Queen" />)}
               </div>
               {field(tr(lang, 'rm.f_amenities'), <input name="amenities" className={inputCls} placeholder="AC, WiFi, Smart TV" />)}
-              {field(tr(lang, 'rm.f_images'), <input name="images" className={inputCls} placeholder="https://…" />)}
+              {field(tr(lang, 'rm.f_images_upload'), <ImageUploader value={images} onChange={setImages} onBusyChange={setUploadBusy} lang={lang} />)}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {field(tr(lang, 'rm.f_half_day'), <input name="price_half_day" type="number" min="0" className={inputCls} />)}
                 {field(tr(lang, 'rm.f_daily'), <input name="price_daily" type="number" min="0" className={inputCls} />)}
@@ -360,11 +389,69 @@ function CreateDialog({ kind, lang, roomTypes, onClose, onCreatedType, onCreated
             <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary">
               {tr(lang, 'rm.cancel')}
             </button>
-            <button type="submit" disabled={busy} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {busy ? tr(lang, 'rm.saving') : tr(lang, 'rm.save')}
+            <button type="submit" disabled={busy || uploadBusy} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {busy ? tr(lang, 'rm.saving') : uploadBusy ? tr(lang, 'rm.img_uploading') : tr(lang, 'rm.save')}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Edit an existing room type's photos. Pricing/featured/active edit inline in the
+// table; this dialog handles images only (PATCH field:'images').
+function EditTypeDialog({ roomType, lang, onClose, onSaved }: {
+  roomType: RoomType;
+  lang: AdminLang;
+  onClose: () => void;
+  onSaved: (images: string[]) => void;
+}) {
+  const [images, setImages] = useState<string[]>(roomType.images ?? []);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch('/api/admin/rooms', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'room_type', id: roomType.id, field: 'images', value: images }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? 'Error');
+      }
+      onSaved(images);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Error');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">{tr(lang, 'rm.edit_type_title')}: {roomType.name}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+
+        {err && <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{err}</p>}
+
+        {field(tr(lang, 'rm.f_images_upload'), <ImageUploader value={images} onChange={setImages} onBusyChange={setUploadBusy} lang={lang} />)}
+
+        <div className="flex justify-end gap-2 pt-4">
+          <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary">
+            {tr(lang, 'rm.cancel')}
+          </button>
+          <button type="button" onClick={save} disabled={busy || uploadBusy} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            {busy ? tr(lang, 'rm.saving') : uploadBusy ? tr(lang, 'rm.img_uploading') : tr(lang, 'rm.save')}
+          </button>
+        </div>
       </div>
     </div>
   );

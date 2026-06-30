@@ -9,6 +9,7 @@ export default [
   route('api/admin/logs', 'routes/api.logs.tsx'),
   route('api/admin/bookings', 'routes/api.bookings.tsx'),
   route('api/admin/rooms', 'routes/api.rooms.tsx'),
+  route('api/admin/images', 'routes/api.images.tsx'),
   route('api/admin/keepalive', 'routes/api.keepalive.tsx'),
 
   // Authed app shell (loader guards via requireAdmin).

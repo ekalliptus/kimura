@@ -8,6 +8,11 @@ const IMG_WIDTHS = new Set([320, 480, 640, 800, 1280, 1920]);
 // Only proxy images from the Cloudbeds CDN. Prevents the route being used as an
 // open image proxy for arbitrary origins (abuse + cost vector).
 const IMG_HOST = /^h-img\d+\.cloudbeds\.com$/;
+// Uploaded room photos: the Supabase public `room-images` bucket. Allow ONLY
+// this exact path prefix on the Supabase host — a bare host check would proxy
+// every public bucket. MUST stay in sync with canOptimize() in
+// packages/core/src/img.ts. Host is derived per-request from env.SUPABASE_URL.
+const SUPABASE_IMG_PREFIX = '/storage/v1/object/public/room-images/';
 
 /**
  * GET /_img?w=&q=&src= — edge image optimization via Cloudflare Image
@@ -15,7 +20,7 @@ const IMG_HOST = /^h-img\d+\.cloudbeds\.com$/;
  * from the Accept header. Returns null when the request isn't a valid /_img call
  * so the caller falls through to Astro SSR.
  */
-async function handleImage(request: Request): Promise<Response | null> {
+async function handleImage(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== '/_img') return null;
   if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
@@ -31,7 +36,14 @@ async function handleImage(request: Request): Promise<Response | null> {
   } catch {
     return new Response('Bad src', { status: 400 });
   }
-  if (target.protocol !== 'https:' || !IMG_HOST.test(target.hostname)) {
+  let supabaseHost = '';
+  try {
+    supabaseHost = new URL(env.SUPABASE_URL).hostname;
+  } catch { /* unset/malformed → Supabase source simply not allowed */ }
+  const allowed =
+    IMG_HOST.test(target.hostname) ||
+    (target.hostname === supabaseHost && target.pathname.startsWith(SUPABASE_IMG_PREFIX));
+  if (target.protocol !== 'https:' || !allowed) {
     return new Response('Host not allowed', { status: 403 });
   }
   if (!IMG_WIDTHS.has(w)) return new Response('Width not allowed', { status: 400 });
@@ -71,7 +83,7 @@ async function handleImage(request: Request): Promise<Response | null> {
  */
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const img = await handleImage(request);
+    const img = await handleImage(request, env);
     if (img) return img;
     return handle(request, env, ctx);
   },

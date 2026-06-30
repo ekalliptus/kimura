@@ -94,8 +94,8 @@ export async function action({ request }: Route.ActionArgs) {
       id: string;
       state?: RoomState;
       active?: boolean;
-      field?: 'price_half_day' | 'price_daily' | 'price_weekly' | 'price_monthly' | 'featured' | 'active';
-      value?: number | boolean | null;
+      field?: 'price_half_day' | 'price_daily' | 'price_weekly' | 'price_monthly' | 'featured' | 'active' | 'images';
+      value?: number | boolean | string[] | null;
     };
     if (!body.id || !body.kind) return Response.json({ error: 'id and kind required' }, { status: 400 });
 
@@ -117,12 +117,17 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (!body.field) return Response.json({ error: 'field required' }, { status: 400 });
-    const patch = { [body.field]: body.value } as Record<string, unknown>;
+    let value = body.value;
+    if (body.field === 'images') {
+      if (!Array.isArray(value)) return Response.json({ error: 'images must be an array' }, { status: 400 });
+      value = value.map((u) => String(u).trim()).filter(Boolean).slice(0, 12);
+    }
+    const patch = { [body.field]: value } as Record<string, unknown>;
     const { data, error } = await svc.from('room_types').update(patch as Database['public']['Tables']['room_types']['Update']).eq('id', body.id).select('name').single();
     if (error) return Response.json({ error: error.message }, { status: 500 });
     await svc.from('activity_logs').insert({
       action: 'room_type.updated', category: 'room',
-      message: `Room type "${data.name}" — ${body.field} set to ${body.value} by ${admin.email}`,
+      message: `Room type "${data.name}" — ${body.field} updated by ${admin.email}`,
       actor: admin.email, actor_id: admin.id, entity_type: 'room_type', entity_id: body.id, metadata: patch,
     });
     return Response.json({ ok: true });
