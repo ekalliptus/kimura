@@ -31,9 +31,10 @@ const pkgPrices = PACKAGES.map((p) => ({
 
 <BaseLayout title={name} description={desc ?? undefined} ogImage={images[0]} preloadImage={images.length ? cdnImage(images[0], 800, 82) : undefined}>
   <Header />
-  <main class="mx-auto max-w-6xl px-5 py-10">
-    <a href={`/rooms${q}`} class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-      ← {t('room.back')}
+  <main class="mx-auto max-w-6xl px-5 pb-24 pt-8 sm:pb-32">
+    <a href={`/rooms${q}`} class="group inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+      <span aria-hidden="true" class="transition-transform duration-300 group-hover:-translate-x-1 group-hover:text-accent">←</span>
+      {t('room.back')}
     </a>
 
     <!-- Gallery -->
@@ -77,8 +78,8 @@ const pkgPrices = PACKAGES.map((p) => ({
       <!-- Details -->
       <div>
         <div class="flex flex-wrap items-center gap-3">
-          {room.featured && <span class="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">{t('rooms.featured')}</span>}
-          <div class="flex items-center gap-3 text-sm text-muted-foreground">
+          {room.featured && <span class="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent-foreground">{t('rooms.featured')}</span>}
+          <div class="flex items-center gap-3 text-sm tabular-nums text-muted-foreground">
             {room.size_sqm && <span>{room.size_sqm} {t('rooms.sqm')}</span>}
             <span class="size-1 rounded-full bg-border"></span>
             <span>{room.max_occupancy} {t('rooms.guests')}</span>
@@ -91,9 +92,9 @@ const pkgPrices = PACKAGES.map((p) => ({
 
         {
           room.amenities?.length > 0 && (
-            <div class="mt-10">
-              <h2 class="font-display text-xl font-semibold">{t('room.amenities')}</h2>
-              <ul class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div class="mt-12 border-t border-border pt-10">
+              <span class="rule-jp">{t('room.amenities')}</span>
+              <ul class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {room.amenities.map((a) => (
                   <li class="flex items-center gap-2.5 text-sm">
                     <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">✓</span>
@@ -109,14 +110,14 @@ const pkgPrices = PACKAGES.map((p) => ({
       <!-- Pricing / Book card -->
       <aside class="h-fit lg:sticky lg:top-24">
         <div class="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 class="font-display text-lg font-semibold">{t('room.pricing')}</h2>
-          <table class="mt-4 w-full text-sm">
+          <span class="rule-jp">{t('room.pricing')}</span>
+          <table class="mt-5 w-full text-sm">
             <tbody>
               {
                 pkgPrices.map((p) => (
                   <tr class="border-b border-border/60 last:border-0">
-                    <td class="py-3 text-muted-foreground">{p.label}</td>
-                    <td class="py-3 text-right font-medium">{formatIDR(p.price)}</td>
+                    <td class="py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">{p.label}</td>
+                    <td class="py-3 text-right font-medium tabular-nums">{formatIDR(p.price)}</td>
                   </tr>
                 ))
               }
@@ -124,9 +125,10 @@ const pkgPrices = PACKAGES.map((p) => ({
           </table>
           <a
             href={`/book${q ? q + '&' : '?'}room=${room.slug}`}
-            class="mt-6 flex w-full items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+            class="group mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-sm font-medium text-accent-foreground transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             {t('room.book_this')}
+            <span aria-hidden="true" class="text-base transition-transform duration-300 group-hover:translate-x-1">→</span>
           </a>
           <p class="mt-3 text-center text-xs text-muted-foreground">
             {lang === 'id' ? 'Tanpa pembayaran di muka — konfirmasi manual.' : 'No upfront payment — manual confirmation.'}

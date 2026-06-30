@@ -40,7 +40,7 @@ const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
 <article
   class="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
 >
-  <a href={`/rooms/${room.slug}${q}`} class:list={["relative block aspect-[4/3] overflow-hidden bg-muted", cover && "animate-pulse"]} aria-label={`View ${name}`}>
+  <a href={`/rooms/${room.slug}${q}`} class:list={["relative block aspect-[4/3] overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset", cover && "animate-pulse"]} aria-label={`View ${name}`}>
     {
       cover ? (
         <img
@@ -61,21 +61,21 @@ const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
     }
     {
       room.featured && (
-        <span class="absolute left-3 top-3 rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">
+        <span class="absolute left-3 top-3 rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent-foreground">
           {t('rooms.featured')}
         </span>
       )
     }
     {
       showFullyBooked && (
-        <span class="absolute right-3 top-3 rounded-full bg-sumi-800 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-sumi-50 border border-sumi-700/50 backdrop-blur-xs">
+        <span class="absolute right-3 top-3 rounded-full bg-sumi-800 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-sumi-50 border border-sumi-700/50 backdrop-blur-xs">
           {lang === 'id' ? 'Penuh' : 'Fully Booked'}
         </span>
       )
     }
     {
       showOnlyOneLeft && (
-        <span class="absolute right-3 top-3 rounded-full bg-indigo-ink px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-clay-100 border border-clay-500/30 backdrop-blur-xs">
+        <span class="absolute right-3 top-3 rounded-full bg-indigo-ink px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-clay-100 border border-clay-500/30 backdrop-blur-xs">
           {lang === 'id' ? 'Sisa 1 kamar' : 'Only 1 left'}
         </span>
       )
@@ -87,7 +87,7 @@ const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
       <h3 class="font-display text-lg font-semibold leading-tight">{name}</h3>
     </div>
 
-    <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+    <div class="mt-1.5 flex items-center gap-3 text-xs tabular-nums text-muted-foreground">
       {room.size_sqm && <span>{room.size_sqm} {t('rooms.sqm')}</span>}
       <span class="size-1 rounded-full bg-border"></span>
       <span>{room.max_occupancy} {t('rooms.guests')}</span>
@@ -98,16 +98,18 @@ const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
 
     <div class="mt-auto flex items-end justify-between pt-5">
       <div>
-        <span class="text-[11px] uppercase tracking-wider text-muted-foreground">{t('rooms.from')}</span>
-        <div class="font-display text-xl font-semibold text-foreground">
-          {formatIDR(price)}<span class="text-xs font-normal text-muted-foreground">{t('rooms.night')}</span>
+        <span class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t('rooms.from')}</span>
+        <div class="font-display text-xl font-semibold tabular-nums text-foreground">
+          {formatIDR(price)}<span class="ml-1 align-middle text-[11px] font-normal uppercase tracking-[0.15em] text-muted-foreground">{t('rooms.night')}</span>
         </div>
       </div>
       <a
         href={`/rooms/${room.slug}${q}`}
-        class="inline-flex items-center rounded-md border border-border px-3.5 py-2 text-sm font-medium transition-colors hover:bg-secondary"
+        aria-label={`View ${name}`}
+        class="group/cta inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-card"
       >
         {t('rooms.view')}
+        <span aria-hidden="true" class="text-base transition-transform duration-300 group-hover/cta:translate-x-1">→</span>
       </a>
     </div>
   </div>

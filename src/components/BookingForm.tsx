@@ -11,6 +11,7 @@ interface Props {
   rooms: RoomType[];
   lang: Lang;
   initialRoom?: string;
+  initialPackage?: string;
 }
 
 function todayISO(offsetDays = 0): string {
@@ -19,6 +20,9 @@ function todayISO(offsetDays = 0): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Period length in days for each package's initial check-out snap.
+const PKG_SPAN: Record<StayPackage, number> = { half_day: 0, daily: 1, weekly: 7, monthly: 30 };
+
 /** ISO date offset from a given ISO date (no DST drift — uses noon). */
 function todayISOfromISO(iso: string, offsetDays: number): string {
   const d = new Date(iso + 'T12:00:00');
@@ -26,15 +30,19 @@ function todayISOfromISO(iso: string, offsetDays: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default function BookingForm({ rooms, lang, initialRoom }: Props) {
+export default function BookingForm({ rooms, lang, initialRoom, initialPackage }: Props) {
   const t = (k: UIKey) => ui[lang][k] ?? ui.en[k] ?? k;
 
   const [roomSlug, setRoomSlug] = useState(
     initialRoom && rooms.some((r) => r.slug === initialRoom) ? initialRoom : rooms[0]?.slug ?? '',
   );
-  const [pkg, setPkg] = useState<StayPackage>('daily');
+  const startPkg: StayPackage = PACKAGES.includes(initialPackage as StayPackage)
+    ? (initialPackage as StayPackage)
+    : 'daily';
+  const [pkg, setPkg] = useState<StayPackage>(startPkg);
   const [checkIn, setCheckIn] = useState(todayISO(1));
-  const [checkOut, setCheckOut] = useState(todayISO(2));
+  // Seed check-out to match the incoming package's span (half_day → same day).
+  const [checkOut, setCheckOut] = useState(todayISO(1 + PKG_SPAN[startPkg]));
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
