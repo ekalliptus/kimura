@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    rect { fill: #2d2926; }
+    text { fill: #f5f0e8; font-family: serif; }
+    @media (prefers-color-scheme: dark) {
+      rect { fill: #f5f0e8; }
+      text { fill: #2d2926; }
+    }
+  </style>
+  <rect width="32" height="32" rx="6"/>
+  <text x="16" y="24" font-size="22" font-weight="700" text-anchor="middle">木</text>
+</svg>
