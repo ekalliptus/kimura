@@ -1,0 +1,21 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "kimura-admin",
+	"compatibility_date": "2026-06-28",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "./workers/app.ts",
+	"assets": {
+		"directory": "./build/client"
+	},
+	// Custom domain: admin.kimura.ekalliptus.com. Requires the zone in this CF account.
+	"routes": [
+		{ "pattern": "admin.kimura.ekalliptus.com", "custom_domain": true }
+	],
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		// Non-secret runtime vars only. Secrets via `wrangler secret put`.
+		// Local dev reads .dev.vars (see .dev.vars.example).
+	}
+}

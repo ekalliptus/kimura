@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { KeepAlive } from '@/lib/database.types';
-import type { AdminLang } from '@/lib/admin-i18n';
-import { t as tr } from '@/lib/admin-i18n';
+import type { KeepAlive } from '@kimura/core/database.types';
+import type { AdminLang } from '~/lib/admin-i18n';
+import { t as tr } from '~/lib/admin-i18n';
 
 export default function KeepAlivePanel({ initial, lang }: { initial: KeepAlive | null; lang: AdminLang }) {
   const [ka, setKa] = useState<KeepAlive | null>(initial);

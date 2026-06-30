@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import type { Booking, BookingStatus, Room, RoomType } from '@/lib/database.types';
-import { formatIDR, formatDate, STATUS_LABELS } from '@/lib/format';
-import type { AdminLang } from '@/lib/admin-i18n';
-import { t as tr } from '@/lib/admin-i18n';
+import type { Booking, BookingStatus, Room, RoomType } from '@kimura/core/database.types';
+import { formatIDR, formatDate, STATUS_LABELS } from '@kimura/core/format';
+import type { AdminLang } from '~/lib/admin-i18n';
+import { t as tr } from '~/lib/admin-i18n';
 
 interface Props {
   initialBookings: Booking[];

@@ -1,0 +1,37 @@
+{
+  "name": "@kimura/admin",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "react-router typegen && tsc",
+    "deploy": "vite build && wrangler deploy",
+    "generate-types": "wrangler types"
+  },
+  "dependencies": {
+    "@kimura/core": "workspace:*",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "isbot": "^5.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^8.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.42.3",
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "@react-router/dev": "^8.1.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^6.0.3",
+    "vite": "^7.1.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "wrangler": "^4.105.0"
+  }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ActivityLog } from '@/lib/database.types';
-import type { AdminLang } from '@/lib/admin-i18n';
-import { t as tr } from '@/lib/admin-i18n';
+import type { ActivityLog } from '@kimura/core/database.types';
+import type { AdminLang } from '~/lib/admin-i18n';
+import { t as tr } from '~/lib/admin-i18n';
 
 interface Props {
   initialLogs: ActivityLog[];

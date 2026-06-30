@@ -10,6 +10,10 @@
 		"directory": "./dist",
 		"binding": "ASSETS"
 	},
+	// Custom domain: kimura.ekalliptus.com. Requires the zone in this CF account.
+	"routes": [
+		{ "pattern": "kimura.ekalliptus.com", "custom_domain": true }
+	],
 	// The Cloudflare adapter injects an Astro sessions driver bound to KV "SESSION".
 	// We don't use Astro.session (auth is Supabase cookies), but the binding must
 	// exist for deploy. Create one and paste its id:
