@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Props {
   /** ISO yyyy-mm-dd */
@@ -39,6 +39,12 @@ export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange
     const base = checkIn || todayISO;
     return new Date(base.slice(0, 7) + '-01T00:00:00');
   });
+
+  useEffect(() => {
+    if (!checkIn) return;
+    setAnchor(new Date(checkIn.slice(0, 7) + '-01T00:00:00'));
+  }, [checkIn]);
+
   // Day under the cursor while picking a check-out (for the range preview).
   const [hoverISO, setHoverISO] = useState<string | null>(null);
 

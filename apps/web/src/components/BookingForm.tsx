@@ -89,21 +89,26 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
   // daily = free range (1), half_day = same day (0). Drives calendar snapping.
   const stepDays = pkg === 'weekly' ? 7 : pkg === 'monthly' ? 30 : 1;
 
+  function checkoutFor(nextCheckIn: string, nextPkg = pkg): string {
+    if (nextPkg === 'half_day') return nextCheckIn;
+    if (nextPkg === 'weekly') return todayISOfromISO(nextCheckIn, 7);
+    if (nextPkg === 'monthly') return todayISOfromISO(nextCheckIn, 30);
+    const currentNights = Math.max(1, Math.round((new Date(checkOut + 'T12:00:00').getTime() - new Date(checkIn + 'T12:00:00').getTime()) / 86_400_000));
+    return todayISOfromISO(nextCheckIn, currentNights);
+  }
+
   // Normalise dates on package switch so check-out always matches what's charged:
   // half_day → same day; weekly/monthly → snap to one whole period from check-in;
-  // daily → ensure at least one night. Fixes stale/mismatched-duration bugs.
+  // daily → preserve the current night count, min 1. Fixes stale duration bugs.
   function changePackage(next: StayPackage) {
     setPkg(next);
-    if (next === 'half_day') {
-      setCheckOut(checkIn);
-    } else if (next === 'weekly') {
-      setCheckOut(todayISOfromISO(checkIn, 7));
-    } else if (next === 'monthly') {
-      setCheckOut(todayISOfromISO(checkIn, 30));
-    } else if (checkOut <= checkIn) {
-      // Daily needs at least one night.
-      setCheckOut(todayISOfromISO(checkIn, 1));
-    }
+    setCheckOut(checkoutFor(checkIn, next));
+  }
+
+  function changeCheckIn(next: string) {
+    if (!next) return;
+    setCheckIn(next);
+    setCheckOut(checkoutFor(next));
   }
 
   // Overnight packages need check_out > check_in; half_day is same-day.
@@ -227,6 +232,19 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
                   : `${fmtDay(checkOut)}${estimate ? ` · ${estimate.quantity} ${unitLabel(estimate.quantity)}` : ''}`}
               </div>
             </div>
+          </div>
+
+          <div className="mb-4 rounded-lg border border-dashed border-border bg-background px-4 py-3">
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {lang === 'id' ? 'Langsung pilih tanggal masuk' : 'Jump to check-in date'}
+            </label>
+            <input
+              type="date"
+              min={todayISO()}
+              value={checkIn}
+              onChange={(e) => changeCheckIn(e.target.value)}
+              className={inputCls}
+            />
           </div>
 
           <div className="rounded-xl border border-border bg-background/40 p-4">
