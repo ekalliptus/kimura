@@ -218,33 +218,40 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
         <section>
           <h2 className={stepCls}><span className="flex size-5 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent">2</span>{t('book.dates')}</h2>
 
-          {/* Selected-date pills */}
+          {/* Selected-date pills — tap to open a native date picker; the invisible
+              full-size <input type="date"> overlay makes the whole pill the hit
+              target. Check-out is only editable on daily (weekly/monthly derive it). */}
           <div className="mb-4 grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-border bg-background px-4 py-2.5">
+            <div className="relative cursor-pointer rounded-lg border border-border bg-background px-4 py-2.5 transition-colors hover:border-accent/60 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('book.checkin')}</div>
               <div className="mt-0.5 font-display text-sm font-semibold">{fmtDay(checkIn)}</div>
+              <input
+                type="date"
+                min={todayISO()}
+                value={checkIn}
+                onChange={(e) => changeCheckIn(e.target.value)}
+                aria-label={t('book.checkin')}
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
+              />
             </div>
-            <div className={`rounded-lg border px-4 py-2.5 ${isHalfDay ? 'border-dashed border-border/60 bg-muted/30' : 'border-border bg-background'}`}>
+            <div className={`relative rounded-lg border px-4 py-2.5 ${isHalfDay ? 'border-dashed border-border/60 bg-muted/30' : 'border-border bg-background'} ${!isHalfDay && stepDays === 1 ? 'cursor-pointer transition-colors hover:border-accent/60 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20' : ''}`}>
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{isHalfDay ? (lang === 'id' ? 'Durasi' : 'Duration') : t('book.checkout')}</div>
               <div className="mt-0.5 font-display text-sm font-semibold">
                 {isHalfDay
                   ? (lang === 'id' ? 'Setengah hari' : 'Half day')
                   : `${fmtDay(checkOut)}${estimate ? ` · ${estimate.quantity} ${unitLabel(estimate.quantity)}` : ''}`}
               </div>
+              {!isHalfDay && stepDays === 1 && (
+                <input
+                  type="date"
+                  min={todayISOfromISO(checkIn, 1)}
+                  value={checkOut}
+                  onChange={(e) => { const v = e.target.value; if (v > checkIn) setCheckOut(v); }}
+                  aria-label={t('book.checkout')}
+                  className="absolute inset-0 size-full cursor-pointer opacity-0"
+                />
+              )}
             </div>
-          </div>
-
-          <div className="mb-4 rounded-lg border border-dashed border-border bg-background px-4 py-3">
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {lang === 'id' ? 'Langsung pilih tanggal masuk' : 'Jump to check-in date'}
-            </label>
-            <input
-              type="date"
-              min={todayISO()}
-              value={checkIn}
-              onChange={(e) => changeCheckIn(e.target.value)}
-              className={inputCls}
-            />
           </div>
 
           <div className="rounded-xl border border-border bg-background/40 p-4">
