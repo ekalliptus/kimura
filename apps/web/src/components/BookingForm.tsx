@@ -311,7 +311,7 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
       <aside className="h-fit lg:sticky lg:top-24">
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           {room?.images?.[0] && (
-            <div className="mb-4 aspect-[4/3] w-full animate-pulse overflow-hidden rounded-lg bg-muted">
+            <div className="mb-4 aspect-4/3 w-full animate-pulse overflow-hidden rounded-lg bg-muted">
               <img
                 key={room.images[0]}
                 src={room.images[0]}
