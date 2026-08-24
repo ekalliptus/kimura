@@ -23,15 +23,15 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
   ];
 
   // Allowed next states from each status (the manual workflow).
-  const NEXT: Record<BookingStatus, { status: BookingStatus; labelKey: 'bk.confirm' | 'bk.cancel' | 'bk.check_in' | 'bk.check_out' | 'bk.reopen' | 'bk.no_show'; toastKey: 'bk.confirm' | 'bk.cancel' | 'bk.check_in' | 'bk.check_out' | 'bk.reopen' | 'bk.no_show'; style: string }[]> = {
+  const NEXT: Record<BookingStatus, { status: BookingStatus; labelKey: 'bk.confirm' | 'bk.cancel' | 'bk.check_in' | 'bk.check_out' | 'bk.reopen' | 'bk.no_show'; toastKey: 'bk.confirm' | 'bk.cancel' | 'bk.check_in' | 'bk.check_out' | 'bk.reopen' | 'bk.no_show'; style: string; confirmKey?: 'bk.cancel_confirm' | 'bk.noshow_confirm' }[]> = {
     pending: [
       { status: 'confirmed', labelKey: 'bk.confirm', toastKey: 'bk.confirm', style: 'bg-blue-600 text-white hover:bg-blue-700' },
-      { status: 'cancelled', labelKey: 'bk.cancel', toastKey: 'bk.cancel', style: 'border border-border hover:bg-secondary' },
+      { status: 'cancelled', labelKey: 'bk.cancel', toastKey: 'bk.cancel', style: 'border border-border hover:bg-secondary', confirmKey: 'bk.cancel_confirm' },
     ],
     confirmed: [
       { status: 'checked_in', labelKey: 'bk.check_in', toastKey: 'bk.check_in', style: 'bg-green-600 text-white hover:bg-green-700' },
-      { status: 'no_show', labelKey: 'bk.no_show', toastKey: 'bk.no_show', style: 'border border-border hover:bg-secondary' },
-      { status: 'cancelled', labelKey: 'bk.cancel', toastKey: 'bk.cancel', style: 'border border-border hover:bg-secondary' },
+      { status: 'no_show', labelKey: 'bk.no_show', toastKey: 'bk.no_show', style: 'border border-border hover:bg-secondary', confirmKey: 'bk.noshow_confirm' },
+      { status: 'cancelled', labelKey: 'bk.cancel', toastKey: 'bk.cancel', style: 'border border-border hover:bg-secondary', confirmKey: 'bk.cancel_confirm' },
     ],
     checked_in: [
       { status: 'checked_out', labelKey: 'bk.check_out', toastKey: 'bk.check_out', style: 'bg-primary text-primary-foreground hover:opacity-90' },
@@ -68,7 +68,8 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
     });
   }, [bookings, filter, query]);
 
-  async function patch(id: string, body: Record<string, unknown>, okMsg: string) {
+  async function patch(id: string, body: Record<string, unknown>, okMsg: string, confirmKey?: 'bk.cancel_confirm' | 'bk.noshow_confirm', ref = '') {
+    if (confirmKey && !window.confirm(tr(lang, confirmKey).replace('{ref}', ref))) return;
     setBusy(id);
     try {
       const res = await fetch('/api/admin/bookings', {
@@ -76,10 +77,13 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...body }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; status?: string };
       if (!res.ok) throw new Error(data.error ?? 'Failed');
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...body } as Booking : b)));
-      setSelected((s) => (s && s.id === id ? ({ ...s, ...body } as Booking) : s));
+      // Server returns the authoritative status (confirm runs through an RPC,
+      // so echoing the request body alone can diverge from the DB).
+      const applied = { ...body, ...(body.status && data.status ? { status: data.status } : {}) } as Partial<Booking>;
+      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...applied } as Booking : b)));
+      setSelected((s) => (s && s.id === id ? ({ ...s, ...applied } as Booking) : s));
       setToast(okMsg);
       setTimeout(() => setToast(null), 2500);
     } catch (err) {
@@ -150,7 +154,7 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1.5">
                       {NEXT[b.status].slice(0, 2).map((a) => (
-                        <button key={a.status} disabled={busy === b.id} onClick={() => patch(b.id, { status: a.status }, `${b.reference} → ${tr(lang, a.toastKey)}`)}
+                        <button key={a.status} disabled={busy === b.id} onClick={() => patch(b.id, { status: a.status }, `${b.reference} → ${tr(lang, a.toastKey)}`, a.confirmKey, b.reference)}
                           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${a.style}`}>
                           {tr(lang, a.labelKey)}
                         </button>
@@ -214,7 +218,7 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
             <div className="mt-6 flex flex-wrap gap-2">
               {NEXT[selected.status].map((a) => (
                 <button key={a.status} disabled={busy === selected.id}
-                  onClick={() => patch(selected.id, { status: a.status }, `${selected.reference} → ${tr(lang, a.toastKey)}`)}
+                  onClick={() => patch(selected.id, { status: a.status }, `${selected.reference} → ${tr(lang, a.toastKey)}`, a.confirmKey, selected.reference)}
                   className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${a.style}`}>
                   {tr(lang, a.labelKey)}
                 </button>

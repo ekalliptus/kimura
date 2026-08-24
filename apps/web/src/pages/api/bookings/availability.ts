@@ -27,7 +27,9 @@ export const GET: APIRoute = async ({ url }) => {
     .maybeSingle();
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    // Log details server-side; don't leak Supabase internals to the public.
+    console.error('[availability]', error.message);
+    return new Response(JSON.stringify({ error: 'availability check failed' }), { status: 500 });
   }
   if (!data) {
     // RPC absent or room inactive → fail open (don't block booking).

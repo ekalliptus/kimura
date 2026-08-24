@@ -3,6 +3,7 @@ import type { RoomType } from '@kimura/core/database.types';
 import type { Lang, UIKey } from '@kimura/core/i18n';
 import { ui } from '@kimura/core/i18n';
 import { PACKAGES, estimateTotal, formatIDR } from '@kimura/core/format';
+import { whatsappLink } from '@kimura/core/hotel';
 import type { StayPackage } from '@kimura/core/database.types';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
 import { useRoomAvailability } from '@/lib/useAvailability';
@@ -28,6 +29,14 @@ function todayISOfromISO(iso: string, offsetDays: number): string {
   const d = new Date(iso + 'T12:00:00');
   d.setDate(d.getDate() + offsetDays);
   return d.toISOString().slice(0, 10);
+}
+
+/** Parse a guest-count input; empty/invalid falls back to previous value. */
+function guestCount(raw: string, prev: number, min: number, max: number): number {
+  if (raw === '') return prev;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return prev;
+  return Math.min(max, Math.max(min, Math.round(n)));
 }
 
 export default function BookingForm({ rooms, lang, initialRoom, initialPackage }: Props) {
@@ -116,6 +125,7 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (status === 'submitting') return; // double-Enter before state commit
     if (dateInvalid) {
       setErrorMsg(lang === 'id' ? 'Tanggal keluar harus setelah tanggal masuk.' : 'Check-out must be after check-in.');
       setStatus('error');
@@ -140,12 +150,18 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
           special_requests: requests,
         }),
       });
-      const data = (await res.json()) as { reference?: string; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Request failed');
+      const data = (await res.json().catch(() => null)) as { reference?: string; error?: string; code?: string } | null;
+      if (!res.ok || !data) {
+        // Map known server codes to localized copy; anything else falls back to generic.
+        const localized = data?.code ? t(`book.err.${data.code}` as UIKey) : undefined;
+        throw new Error(localized ?? data?.error ?? t('book.err.generic'));
+      }
       setReference(data.reference ?? '');
       setStatus('success');
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Error');
+      setErrorMsg(err instanceof Error && err.message && err.message !== 'Failed to fetch'
+        ? err.message
+        : t('book.err.generic'));
       setStatus('error');
     }
   }
@@ -158,12 +174,22 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
         <p className="mt-3 text-sm text-muted-foreground">{t('book.success.body')}</p>
         <p className="mt-2 font-mono text-2xl font-bold tracking-wider text-accent">{reference}</p>
         <p className="mx-auto mt-4 max-w-sm text-sm text-muted-foreground">{t('book.success.note')}</p>
-        <button
-          onClick={() => { setStatus('idle'); setName(''); setEmail(''); setPhone(''); setRequests(''); }}
-          className="mt-7 rounded-md border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
-        >
-          {t('book.another')}
-        </button>
+        <div className="mt-7 flex flex-wrap justify-center gap-2">
+          <a
+            href={whatsappLink(`${t('book.success.body')} ${reference}`)}
+            target="_blank"
+            rel="noopener"
+            className="rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+          >
+            WhatsApp
+          </a>
+          <button
+            onClick={() => { setStatus('idle'); setName(''); setEmail(''); setPhone(''); setRequests(''); }}
+            className="rounded-md border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
+          >
+            {t('book.another')}
+          </button>
+        </div>
       </div>
     );
   }
@@ -292,11 +318,11 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>{t('book.adults')}</label>
-                <input type="number" min={1} max={room?.max_occupancy ?? 4} value={adults} onChange={(e) => setAdults(Number(e.target.value))} className={inputCls} />
+                <input type="number" min={1} max={room?.max_occupancy ?? 4} value={adults} onChange={(e) => setAdults(guestCount(e.target.value, adults, 1, room?.max_occupancy ?? 4))} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>{t('book.children')}</label>
-                <input type="number" min={0} max={4} value={children} onChange={(e) => setChildren(Number(e.target.value))} className={inputCls} />
+                <input type="number" min={0} max={4} value={children} onChange={(e) => setChildren(guestCount(e.target.value, children, 0, 4))} className={inputCls} />
               </div>
             </div>
             <div>

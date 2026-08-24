@@ -28,7 +28,7 @@ const initialPackage = Astro.url.searchParams.get('package') ?? undefined;
           <BookingForm rooms={rooms} lang={lang} initialRoom={initialRoom} initialPackage={initialPackage} client:load />
         ) : (
           <div class="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
-            {lang === 'id' ? 'Belum ada kamar untuk dipesan. Jalankan seed database.' : 'No rooms to book yet. Run the DB seed.'}
+            {lang === 'id' ? 'Reservasi sedang tidak tersedia. Hubungi kami via WhatsApp di bagian bawah halaman.' : 'Booking is temporarily unavailable. Reach us on WhatsApp in the footer.'}
           </div>
         )
       }

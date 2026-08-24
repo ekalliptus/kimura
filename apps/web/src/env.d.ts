@@ -1,3 +1,4 @@
+/// <reference types="@cloudflare/workers-types" />
 /// <reference types="astro/client" />
 /// <reference types="geojson" />
 /// <reference path="../worker-configuration.d.ts" />

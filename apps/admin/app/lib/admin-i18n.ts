@@ -78,6 +78,14 @@ const STRINGS = {
   'bk.check_in': { id: 'Check-in', en: 'Check in' },
   'bk.check_out': { id: 'Check-out', en: 'Check out' },
   'bk.reopen': { id: 'Buka lagi', en: 'Reopen' },
+  'bk.cancel_confirm': {
+    id: 'Batalkan reservasi {ref}? Tindakan ini melepas kamar dan tidak bisa dibatalkan.',
+    en: 'Cancel booking {ref}? This releases the room and cannot be undone.',
+  },
+  'bk.noshow_confirm': {
+    id: 'Tandai {ref} sebagai no-show? Tamu dianggap tidak datang.',
+    en: 'Mark {ref} as a no-show? The guest is treated as not arriving.',
+  },
   'bk.no_match': { id: 'Tidak ada reservasi cocok.', en: 'No bookings match.' },
   'bk.email': { id: 'Email', en: 'Email' },
   'bk.phone': { id: 'Telepon', en: 'Phone' },

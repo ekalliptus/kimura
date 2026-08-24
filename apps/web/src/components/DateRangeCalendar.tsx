@@ -65,9 +65,19 @@ export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange
   const inTs = checkIn ? new Date(checkIn + 'T00:00:00').getTime() : null;
   const outTs = checkOut ? new Date(checkOut + 'T00:00:00').getTime() : null;
   const hoverTs = hoverISO ? new Date(hoverISO + 'T00:00:00').getTime() : null;
-  // Preview end (daily only): while hovering a day after check-in, show where
-  // check-out would land. Fixed-period packages are deterministic — no preview.
-  const previewTs = !singleMode && stepDays === 1 && inTs != null && hoverTs != null && hoverTs > inTs ? hoverTs : null;
+  // Preview end. Daily: the hovered day becomes check-out. Weekly/monthly:
+  // hovering past the current check-out previews a longer stay snapped up to
+  // whole periods from check-in (2 weeks, 3 months, …).
+  let previewTs: number | null = null;
+  if (!singleMode && inTs != null && hoverTs != null && hoverTs > inTs) {
+    if (stepDays === 1) previewTs = hoverTs;
+    else {
+      const periods = Math.ceil((hoverTs - inTs) / 86_400_000 / stepDays);
+      if (addDaysISO(checkIn, periods * stepDays) !== checkOut) {
+        previewTs = new Date(addDaysISO(checkIn, Math.max(1, periods) * stepDays) + 'T00:00:00').getTime();
+      }
+    }
+  }
   const todayTs = new Date(todayISO + 'T00:00:00').getTime();
 
   function handleClick(dayISO: string) {
@@ -76,10 +86,16 @@ export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange
       onChange(dayISO, dayISO);
       return;
     }
-    // Fixed-period packages (weekly/monthly): a click always sets check-in and
-    // snaps check-out to one whole period later. No two-click range, so the
-    // band always reflects the charged duration and check-out is never empty.
+    // Fixed-period packages (weekly/monthly): first click sets check-in with a
+    // one-period check-out; clicking further out extends by whole periods
+    // (snapped up), so 1..N weeks/months are all bookable and the band always
+    // matches what's charged. Clicking on/before check-in restarts.
     if (stepDays > 1) {
+      if (inTs != null && dayTs > inTs) {
+        const periods = Math.max(1, Math.ceil((dayTs - inTs) / 86_400_000 / stepDays));
+        onChange(checkIn, addDaysISO(checkIn, periods * stepDays));
+        return;
+      }
       onChange(dayISO, addDaysISO(dayISO, stepDays));
       return;
     }

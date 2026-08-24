@@ -8,14 +8,18 @@ export const prerender = false;
 
 const PACKAGES: StayPackage[] = ['half_day', 'daily', 'weekly', 'monthly'];
 
-function bad(message: string, status = 400) {
-  return new Response(JSON.stringify({ error: message }), {
+function bad(message: string, status = 400, code?: string) {
+  return new Response(JSON.stringify({ error: message, code }), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
+  // JSON only — blocks cross-site `text/plain`/form-encoded CSRF posts.
+  const ct = request.headers.get('content-type') ?? '';
+  if (!ct.includes('application/json')) return bad('Expected application/json', 415);
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -25,14 +29,13 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   const roomSlug = String(body.room_slug ?? '').trim();
   const pkg = String(body.package ?? 'daily') as StayPackage;
-  const guest_name = String(body.guest_name ?? '').trim();
-  const guest_email = String(body.guest_email ?? '').trim();
-  const guest_phone = String(body.guest_phone ?? '').trim();
+  // Length caps at the trust boundary — these land in unbounded text columns.
+  const guest_name = String(body.guest_name ?? '').trim().slice(0, 120);
+  const guest_email = String(body.guest_email ?? '').trim().slice(0, 254);
+  const guest_phone = String(body.guest_phone ?? '').trim().slice(0, 32);
   const check_in = String(body.check_in ?? '').trim();
   const check_out = String(body.check_out ?? '').trim();
-  const adults = Math.max(1, Number(body.adults ?? 1));
-  const children = Math.max(0, Number(body.children ?? 0));
-  const special_requests = String(body.special_requests ?? '').trim() || null;
+  const special_requests = String(body.special_requests ?? '').trim().slice(0, 1000) || null;
 
   // --- validation ---
   if (!roomSlug) return bad('room_slug is required');
@@ -42,6 +45,17 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (guest_phone.replace(/\D/g, '').length < 8) return bad('valid guest_phone is required');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(check_in)) return bad('valid check_in is required');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(check_out)) return bad('valid check_out is required');
+  // Regex accepts impossible dates (2026-02-31); verify against the calendar and
+  // reject past dates — Postgres `date` cast would otherwise 500.
+  for (const [label, iso] of [['check_in', check_in], ['check_out', check_out]] as const) {
+    const d = new Date(iso + 'T00:00:00Z');
+    if (isNaN(d.getTime()) || iso !== d.toISOString().slice(0, 10)) {
+      return bad(`valid ${label} is required`);
+    }
+  }
+  // Property runs on WIB (UTC+7); "today" must not lag the guest's calendar.
+  const todayWIB = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+  if (check_in < todayWIB) return bad('check_in cannot be in the past', 400, 'past_dates');
   if (check_out < check_in) return bad('check_out must be on/after check_in');
   // half_day is a same-day stay (check_out may equal check_in). Overnight
   // packages must span at least one night.
@@ -56,7 +70,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     .select('*')
     .eq('slug', roomSlug)
     .maybeSingle();
-  if (roomErr || !room) return bad('room not found', 404);
+  if (roomErr || !room) return bad('room not found', 404, 'not_found');
+
+  // Clamp guests to the room type's capacity (UI caps it too; server enforces).
+  const adults = Math.min(Math.max(1, Number(body.adults ?? 1) || 1), (room as RoomType).max_occupancy || 16);
+  const children = Math.max(0, Number(body.children ?? 0) || 0);
 
   const rt = room as RoomType;
   const { unit, quantity, total } = estimateTotal(rt, pkg, check_in, check_out);
@@ -71,7 +89,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       .rpc('room_type_availability', { p_slug: roomSlug, p_check_in: check_in, p_check_out: check_out })
       .maybeSingle();
     if (avail && avail.available <= 0) {
-      return bad('Fully booked for the selected dates. Please try other dates.', 409);
+      return bad('Fully booked for the selected dates. Please try other dates.', 409, 'fully_booked');
     }
   }
 
@@ -87,7 +105,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     check_out,
     adults,
     children,
-    nights: nightsBetween(check_in, check_out),
+    nights: pkg === 'half_day' ? 0 : nightsBetween(check_in, check_out),
     unit_price: unit,
     quantity,
     total_price: total ?? 0,

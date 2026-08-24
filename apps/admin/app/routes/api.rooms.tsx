@@ -33,21 +33,27 @@ export async function action({ request }: Route.ActionArgs) {
       let slug = String(body.slug ?? '').trim() || slugify(name);
       if (!slug) slug = `room-${Math.random().toString(36).slice(2, 8)}`;
 
+      // Prices: null or non-negative integer (client sends strings via num()).
+      const price = (v: unknown): number | null => {
+        const n = Number(v);
+        return v != null && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+      };
+
       const row = {
         name,
         slug,
         name_id: String(body.name_id ?? '').trim() || name,
         description: String(body.description ?? '').trim() || null,
         description_id: String(body.description_id ?? '').trim() || null,
-        size_sqm: (body.size_sqm as number) ?? null,
-        max_occupancy: Math.max(1, Number(body.max_occupancy ?? 2)),
+        size_sqm: price(body.size_sqm),
+        max_occupancy: Math.max(1, Math.round(Number(body.max_occupancy) || 2)),
         bed_config: String(body.bed_config ?? '').trim() || null,
         amenities: Array.isArray(body.amenities) ? (body.amenities as string[]).map((a) => a.trim()).filter(Boolean) : [],
-        images: Array.isArray(body.images) ? (body.images as string[]).map((a) => a.trim()).filter(Boolean) : [],
-        price_half_day: (body.price_half_day as number | null) ?? null,
-        price_daily: (body.price_daily as number | null) ?? null,
-        price_weekly: (body.price_weekly as number | null) ?? null,
-        price_monthly: (body.price_monthly as number | null) ?? null,
+        images: Array.isArray(body.images) ? (body.images as string[]).map((a) => a.trim()).filter(Boolean).slice(0, 12) : [],
+        price_half_day: price(body.price_half_day),
+        price_daily: price(body.price_daily),
+        price_weekly: price(body.price_weekly),
+        price_monthly: price(body.price_monthly),
         featured: false,
         active: true,
         sort_order: 100,
@@ -117,10 +123,21 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (!body.field) return Response.json({ error: 'field required' }, { status: 400 });
+    // TS type above isn't a runtime guard — enforce the writable column set.
+    const WRITABLE = ['price_half_day', 'price_daily', 'price_weekly', 'price_monthly', 'featured', 'active', 'images'] as const;
+    if (!WRITABLE.includes(body.field)) return Response.json({ error: 'invalid field' }, { status: 400 });
     let value = body.value;
     if (body.field === 'images') {
       if (!Array.isArray(value)) return Response.json({ error: 'images must be an array' }, { status: 400 });
       value = value.map((u) => String(u).trim()).filter(Boolean).slice(0, 12);
+    } else if (body.field === 'featured' || body.field === 'active') {
+      if (typeof value !== 'boolean') return Response.json({ error: 'must be boolean' }, { status: 400 });
+    } else {
+      // Price columns: null clears, otherwise a non-negative integer.
+      if (value !== null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
+        return Response.json({ error: 'price must be a non-negative number or null' }, { status: 400 });
+      }
+      value = typeof value === 'number' ? Math.round(value) : null;
     }
     const patch = { [body.field]: value } as Record<string, unknown>;
     const { data, error } = await svc.from('room_types').update(patch as Database['public']['Tables']['room_types']['Update']).eq('id', body.id).select('name').single();

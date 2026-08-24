@@ -7,9 +7,9 @@ const q = lang === 'en' ? '?lang=en' : '';
 
 const links = [
   { href: `/rooms${q}`, label: t('nav.rooms') },
-  { href: `/#packages`, label: t('nav.packages') },
-  { href: `/#location`, label: t('nav.location') },
-  { href: `/#contact`, label: t('nav.contact') },
+  { href: `/${q}#packages`, label: t('nav.packages') },
+  { href: `/${q}#location`, label: t('nav.location') },
+  { href: `/${q}#contact`, label: t('nav.contact') },
 ];
 ---
 
