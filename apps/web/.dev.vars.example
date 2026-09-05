@@ -7,3 +7,6 @@ WA_ENABLED="false"            # WhatsApp notifications (Fonnte) — on when "tru
 WA_PROVIDER="fonnte"          # only fonnte for now
 WA_API_TOKEN=""               # from Fonnte dashboard
 WA_ADMIN_PHONE="62812xxxxxxx" # recipient of new-booking notifications
+MIDTRANS_SERVER_KEY=""       # empty = payments disabled (reservation-only flow)
+MIDTRANS_CLIENT_KEY=""       # only needed for the Snap JS widget
+MIDTRANS_IS_PRODUCTION="false" # "true" targets production Midtrans

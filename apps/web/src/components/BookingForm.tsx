@@ -13,6 +13,8 @@ interface Props {
   lang: Lang;
   initialRoom?: string;
   initialPackage?: string;
+  /** Midtrans configured server-side; gates the pay button on the success view. */
+  paymentsEnabled?: boolean;
 }
 
 function todayISO(offsetDays = 0): string {
@@ -39,7 +41,7 @@ function guestCount(raw: string, prev: number, min: number, max: number): number
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-export default function BookingForm({ rooms, lang, initialRoom, initialPackage }: Props) {
+export default function BookingForm({ rooms, lang, initialRoom, initialPackage, paymentsEnabled }: Props) {
   const t = (k: UIKey) => ui[lang][k] ?? ui.en[k] ?? k;
 
   const [roomSlug, setRoomSlug] = useState(
@@ -60,6 +62,7 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
   const [requests, setRequests] = useState('');
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [payStatus, setPayStatus] = useState<'idle' | 'redirecting' | 'error'>('idle');
   const [reference, setReference] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -166,6 +169,21 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
     }
   }
 
+  // Open a Midtrans Snap checkout for this booking and follow the redirect.
+  async function payNow() {
+    if (payStatus !== 'idle') return;
+    setPayStatus('redirecting');
+    try {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(reference)}/pay`, { method: 'POST' });
+      const data = (await res.json().catch(() => null)) as { redirect_url?: string } | null;
+      if (!res.ok || !data?.redirect_url) throw new Error('no redirect');
+      window.location.href = data.redirect_url;
+      return; // page is leaving — keep the spinner
+    } catch {
+      setPayStatus('error');
+    }
+  }
+
   if (status === 'success') {
     return (
       <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
@@ -175,6 +193,16 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage }
         <p className="mt-2 font-mono text-2xl font-bold tracking-wider text-accent">{reference}</p>
         <p className="mx-auto mt-4 max-w-sm text-sm text-muted-foreground">{t('book.success.note')}</p>
         <div className="mt-7 flex flex-wrap justify-center gap-2">
+          {paymentsEnabled && (
+            <button
+              onClick={payNow}
+              disabled={payStatus !== 'idle'}
+              className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {payStatus === 'idle' ? t('book.pay_now') : t('book.pay_redirect')}
+            </button>
+          )}
+          {payStatus === 'error' && <p className="w-full text-sm text-destructive">{t('book.pay_error')}</p>}
           <a
             href={whatsappLink(`${t('book.success.body')} ${reference}`)}
             target="_blank"
