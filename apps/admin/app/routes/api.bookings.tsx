@@ -1,7 +1,8 @@
 import type { Route } from './+types/api.bookings';
-import type { BookingStatus, Database } from '@kimura/core/database.types';
+import type { Booking, BookingStatus, Database } from '@kimura/core/database.types';
 import { getAdminIdentity } from '~/lib/auth.server';
 import { getAdminClient } from '~/lib/supabase.server';
+import { notifyStatusChange } from '~/lib/notify.server';
 
 const VALID: BookingStatus[] = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show'];
 
@@ -52,24 +53,30 @@ export async function action({ request }: Route.ActionArgs) {
     delete patch.confirmed_at;
   }
 
-  let data: { reference: string; status: string } | null = null;
+  let data: Booking | null = null;
   if (Object.keys(patch).length > 0) {
     const res = await svc
       .from('bookings')
       .update(patch as Database['public']['Tables']['bookings']['Update'])
       .eq('id', body.id)
-      .select('reference, status')
+      .select('*')
       .single();
     if (res.error || !res.data) {
       return Response.json({ error: res.error?.message ?? 'update failed' }, { status: 500 });
     }
     data = res.data;
   } else {
-    const res = await svc.from('bookings').select('reference, status').eq('id', body.id).single();
+    const res = await svc.from('bookings').select('*').eq('id', body.id).single();
     if (res.error || !res.data) {
       return Response.json({ error: res.error?.message ?? 'fetch failed' }, { status: 500 });
     }
     data = res.data;
+  }
+
+  // Guest + admin WA on confirmed/cancelled (best-effort, never fails the action).
+  if (body.status === 'confirmed' || body.status === 'cancelled') {
+    const rtRes = await svc.from('room_types').select('name').eq('id', data.room_type_id).single();
+    await notifyStatusChange(data, body.status, rtRes.data?.name ?? '', admin.email);
   }
 
   await svc.from('activity_logs').insert({

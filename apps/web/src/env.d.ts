@@ -14,13 +14,24 @@ interface SupabaseSecrets {
   SUPABASE_SERVICE_ROLE_KEY: string;
 }
 
+// Feature-flagged integrations (WhatsApp, Midtrans). Absent = feature off.
+interface IntegrationEnv {
+  WA_ENABLED?: string;
+  WA_PROVIDER?: string;
+  WA_API_TOKEN?: string;
+  WA_ADMIN_PHONE?: string;
+  MIDTRANS_SERVER_KEY?: string;
+  MIDTRANS_CLIENT_KEY?: string;
+  MIDTRANS_IS_PRODUCTION?: string;
+}
+
 declare namespace Cloudflare {
-  interface Env extends SupabaseSecrets {}
+  interface Env extends SupabaseSecrets, IntegrationEnv {}
 }
 
 // The generated worker-configuration.d.ts declares a global `interface Env`
 // (used by worker.ts's handler signature). Augment it with the same secrets.
-interface Env extends SupabaseSecrets {}
+interface Env extends SupabaseSecrets, IntegrationEnv {}
 
 // Astro SSR locals: the CF runtime is exposed under Astro.locals.runtime.
 declare namespace App {

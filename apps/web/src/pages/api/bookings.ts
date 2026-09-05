@@ -2,7 +2,9 @@ import type { APIRoute } from 'astro';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import { estimateTotal, nightsBetween } from '@kimura/core/format';
 import type { RoomType, StayPackage } from '@kimura/core/database.types';
+import { bookingAdminMessage, sendWaText } from '@kimura/core/wa';
 import { publicClient } from '@/lib/queries';
+import { getEnv } from '@/lib/env';
 
 export const prerender = false;
 
@@ -139,6 +141,29 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     entity_type: 'booking',
     metadata: { reference: created.reference, room: rt.slug, package: pkg, ip: clientAddress ?? null },
   });
+
+  // WA notification to the admin (best-effort; never fails the booking).
+  const env = getEnv();
+  if (env.WA_ADMIN_PHONE) {
+    await sendWaText(
+      env,
+      env.WA_ADMIN_PHONE,
+      bookingAdminMessage({
+        reference: created.reference,
+        guest_name,
+        guest_phone,
+        guest_email,
+        package: pkg,
+        check_in,
+        check_out,
+        adults,
+        children,
+        total_price: created.total_price,
+        special_requests,
+        room_type_name: rt.name,
+      }),
+    );
+  }
 
   return new Response(
     JSON.stringify({ reference: created.reference, total: created.total_price }),

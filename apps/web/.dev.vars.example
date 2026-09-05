@@ -3,3 +3,7 @@
 SUPABASE_URL="https://YOUR-PROJECT.supabase.co"
 SUPABASE_ANON_KEY="your-anon-key"
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+WA_ENABLED="false"            # WhatsApp notifications (Fonnte) — on when "true"
+WA_PROVIDER="fonnte"          # only fonnte for now
+WA_API_TOKEN=""               # from Fonnte dashboard
+WA_ADMIN_PHONE="62812xxxxxxx" # recipient of new-booking notifications

@@ -10,7 +10,8 @@
     "./i18n": "./src/i18n.ts",
     "./img": "./src/img.ts",
     "./utils": "./src/utils.ts",
-    "./supabase": "./src/supabase.ts"
+    "./supabase": "./src/supabase.ts",
+    "./wa": "./src/wa.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

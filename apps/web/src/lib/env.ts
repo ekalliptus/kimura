@@ -14,6 +14,7 @@ export function getEnv(): Cloudflare.Env {
   // Dev fallback: adapter injects .dev.vars into process.env, not the module env.
   const p = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
   return {
+    ...p,
     ...e,
     SUPABASE_URL: e.SUPABASE_URL ?? p.SUPABASE_URL ?? '',
     SUPABASE_ANON_KEY: e.SUPABASE_ANON_KEY ?? p.SUPABASE_ANON_KEY ?? '',

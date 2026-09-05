@@ -168,6 +168,51 @@ supabase/migrations/     0001 schema · 0002 RLS · 0003 seed · 0004 grants ·
 - The `is_admin()` allowlist (not JWT claims) keeps admin setup to a single SQL
   insert. service-role writes (booking confirms, logs) bypass RLS by design.
 
+## WhatsApp & Payments
+
+Both integrations are **off by default** — the apps behave exactly as before
+until the env vars below are set (`wrangler secret put` per worker in
+production; `.dev.vars` locally).
+
+### WhatsApp (Fonnte)
+
+| Var | Worker | Purpose |
+|-----|--------|---------|
+| `WA_ENABLED` | web + admin | `"true"` turns the feature on |
+| `WA_PROVIDER` | web + admin | `"fonnte"` (only provider for now) |
+| `WA_API_TOKEN` | web + admin | Fonnte device token |
+| `WA_ADMIN_PHONE` | web + admin | recipient of new-booking / status notifications |
+
+Flow: new public booking → WA to `WA_ADMIN_PHONE`; admin confirms/cancels a
+booking → WA to the guest + a one-line notice to `WA_ADMIN_PHONE`. All sends
+are best-effort: a failed notification never fails the booking or the admin
+action (failures are logged with a `[WA]` prefix).
+
+### Payments (Midtrans Snap)
+
+| Var | Worker | Purpose |
+|-----|--------|---------|
+| `MIDTRANS_SERVER_KEY` | web | Snap API auth + webhook signature verification |
+| `MIDTRANS_CLIENT_KEY` | web | only needed if you switch to Snap JS widget |
+| `MIDTRANS_IS_PRODUCTION` | web | `"true"` targets production, default sandbox |
+
+Flow: booking `pending` → **Bayar sekarang** button → `POST /api/bookings/[reference]/pay`
+returns a Snap `redirect_url` → guest pays → Midtrans webhook
+`POST /api/payments/midtrans/webhook` verifies the SHA-512 signature and flips
+the booking to `confirmed` (or `cancelled` on deny/expire/cancel). The webhook
+is idempotent. Without `MIDTRANS_SERVER_KEY` the pay button never renders and
+the manual confirm flow stays intact.
+
+Simulate a webhook locally (sandbox, correct signature):
+
+```bash
+ORDER_ID="KIMURA-XXXX"; STATUS_CODE="200"; GROSS="150000"; KEY="SB-Mid-server-..."
+SIG=$(printf '%s' "$ORDER_ID$STATUS_CODE$GROSS$KEY" | openssl dgst -sha512 | awk '{print $2}')
+curl -X POST http://localhost:4321/api/payments/midtrans/webhook \
+  -H 'Content-Type: application/json' \
+  -d "{\"order_id\":\"$ORDER_ID\",\"status_code\":\"$STATUS_CODE\",\"gross_amount\":\"$GROSS\",\"signature_key\":\"$SIG\",\"transaction_status\":\"settlement\"}"
+```
+
 ## Scripts (from repo root)
 
 | Command | Description |
