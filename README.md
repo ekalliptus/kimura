@@ -146,17 +146,18 @@ apps/web/                Astro public site (→ kimura.ekalliptus.com)
 apps/admin/              React Router v7 admin (→ admin.kimura.ekalliptus.com)
   app/
     routes/              login, admin-layout, dashboard, bookings, rooms,
-                         activity, system, api.* (auth/lang/logs/bookings/rooms/keepalive)
+                         activity, settings, system, api.* (auth/lang/logs/bookings/rooms/images/settings/keepalive)
     components/admin/    BookingsManager, RoomsManager, ConsoleLog, KeepAlivePanel
     lib/                 auth.server, supabase.server, env.server, admin-i18n
     root.tsx, app.css
   workers/app.ts         Worker entry (RR request handler)
 
 packages/core/src/       @kimura/core — shared by both apps
-                         database.types, format, hotel, i18n, img, utils, supabase
+                         database.types, format, hotel, property, i18n, img, utils, supabase, wa
 
 supabase/migrations/     0001 schema · 0002 RLS · 0003 seed · 0004 grants ·
-                         0005 availability · 0006 admin_bootstrap · 0007 harden_insert
+                         0005 availability · 0006 admin_bootstrap · 0007 harden_insert ·
+                         0008 atomic_confirm · 0009 room_images_bucket · 0010 property_settings
 ```
 
 ## Notes

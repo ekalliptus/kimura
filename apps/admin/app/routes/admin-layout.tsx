@@ -14,6 +14,7 @@ const NAV: { to: string; end?: boolean; labelKey: StringKey; icon: string }[] = 
   { to: '/bookings', labelKey: 'nav.bookings', icon: '✎' },
   { to: '/rooms', labelKey: 'nav.rooms', icon: '⌂' },
   { to: '/activity', labelKey: 'nav.activity', icon: '≣' },
+  { to: '/settings', labelKey: 'nav.settings', icon: '⌘' },
   { to: '/system', labelKey: 'nav.system', icon: '⚙' },
 ];
 
@@ -126,6 +127,7 @@ function pageTitle(pathname: string, lang: AdminLang): string {
   if (pathname.startsWith('/bookings')) return tr(lang, 'nav.bookings');
   if (pathname.startsWith('/rooms')) return tr(lang, 'nav.rooms');
   if (pathname.startsWith('/activity')) return tr(lang, 'nav.activity');
+  if (pathname.startsWith('/settings')) return tr(lang, 'nav.settings');
   if (pathname.startsWith('/system')) return tr(lang, 'nav.system');
   return tr(lang, 'nav.dashboard');
 }

@@ -1,9 +1,12 @@
 ---
 import { getLangFromUrl, useTranslations, altLangHref } from '@kimura/core/i18n';
+import { getSiteSettings } from '@/lib/settings';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const q = lang === 'en' ? '?lang=en' : '';
+const site = await getSiteSettings();
+const [brandMain, ...brandRest] = site.name.split(' ');
 
 const links = [
   { href: `/rooms${q}`, label: t('nav.rooms') },
@@ -23,8 +26,10 @@ const links = [
         >木</span
       >
       <span class="flex flex-col leading-none">
-        <span class="font-display text-base font-semibold tracking-tight">Kimura</span>
-        <span class="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Kostay</span>
+        <span class="font-display text-base font-semibold tracking-tight">{brandMain}</span>
+        {brandRest.length > 0 && (
+          <span class="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{brandRest.join(' ')}</span>
+        )}
       </span>
     </a>
 

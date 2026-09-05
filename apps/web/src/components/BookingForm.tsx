@@ -3,7 +3,6 @@ import type { RoomType } from '@kimura/core/database.types';
 import type { Lang, UIKey } from '@kimura/core/i18n';
 import { ui } from '@kimura/core/i18n';
 import { PACKAGES, estimateTotal, formatIDR } from '@kimura/core/format';
-import { whatsappLink } from '@kimura/core/hotel';
 import type { StayPackage } from '@kimura/core/database.types';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
 import { useRoomAvailability } from '@/lib/useAvailability';
@@ -15,6 +14,8 @@ interface Props {
   initialPackage?: string;
   /** Midtrans configured server-side; gates the pay button on the success view. */
   paymentsEnabled?: boolean;
+  /** Property WhatsApp number (from settings); missing = no WA button. */
+  whatsapp?: string;
 }
 
 function todayISO(offsetDays = 0): string {
@@ -41,7 +42,7 @@ function guestCount(raw: string, prev: number, min: number, max: number): number
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-export default function BookingForm({ rooms, lang, initialRoom, initialPackage, paymentsEnabled }: Props) {
+export default function BookingForm({ rooms, lang, initialRoom, initialPackage, paymentsEnabled, whatsapp }: Props) {
   const t = (k: UIKey) => ui[lang][k] ?? ui.en[k] ?? k;
 
   const [roomSlug, setRoomSlug] = useState(
@@ -203,14 +204,16 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage, 
             </button>
           )}
           {payStatus === 'error' && <p className="w-full text-sm text-destructive">{t('book.pay_error')}</p>}
-          <a
-            href={whatsappLink(`${t('book.success.body')} ${reference}`)}
-            target="_blank"
-            rel="noopener"
-            className="rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
-          >
-            WhatsApp
-          </a>
+          {whatsapp && (
+            <a
+              href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`${t('book.success.body')} ${reference}`)}`}
+              target="_blank"
+              rel="noopener"
+              className="rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+            >
+              WhatsApp
+            </a>
+          )}
           <button
             onClick={() => { setStatus('idle'); setName(''); setEmail(''); setPhone(''); setRequests(''); }}
             className="rounded-md border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"

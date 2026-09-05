@@ -10,6 +10,7 @@ export default [
   route('api/admin/bookings', 'routes/api.bookings.tsx'),
   route('api/admin/rooms', 'routes/api.rooms.tsx'),
   route('api/admin/images', 'routes/api.images.tsx'),
+  route('api/admin/settings', 'routes/api.settings.tsx'),
   route('api/admin/keepalive', 'routes/api.keepalive.tsx'),
 
   // Authed app shell (loader guards via requireAdmin).
@@ -18,6 +19,7 @@ export default [
     route('bookings', 'routes/bookings.tsx'),
     route('rooms', 'routes/rooms.tsx'),
     route('activity', 'routes/activity.tsx'),
+    route('settings', 'routes/settings.tsx'),
     route('system', 'routes/system.tsx'),
   ]),
 ] satisfies RouteConfig;

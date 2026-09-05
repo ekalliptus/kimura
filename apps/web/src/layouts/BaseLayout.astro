@@ -1,6 +1,8 @@
 ---
 import '@/styles/global.css';
 import { getLangFromUrl } from '@kimura/core/i18n';
+import { tagline } from '@kimura/core/property';
+import { getSiteSettings } from '@/lib/settings';
 
 interface Props {
   title?: string;
@@ -11,13 +13,10 @@ interface Props {
 
 const { title, description, ogImage, preloadImage } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
+const site = await getSiteSettings();
 
-const fullTitle = title ? `${title} · Kimura Kostay` : 'Kimura Kostay — Semarang';
-const desc =
-  description ??
-  (lang === 'id'
-    ? 'Penginapan minimalis ala Jepang di Semarang. Paket setengah hari hingga bulanan.'
-    : 'A Japanese-minimalist stay in Semarang. Packages from half-day to monthly.');
+const fullTitle = title ? `${title} · ${site.name}` : `${site.name} — Semarang`;
+const desc = description ?? tagline(site, lang);
 const image = ogImage ?? 'https://h-img1.cloudbeds.com/uploads/171276/9~~69b7c88371551.jpg';
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
 ---
@@ -44,7 +43,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={image} />
-    <meta property="og:site_name" content="Kimura Kostay" />
+    <meta property="og:site_name" content={site.name} />
     <meta property="og:locale" content={lang === 'id' ? 'id_ID' : 'en_US'} />
 
     <!-- Twitter Card -->

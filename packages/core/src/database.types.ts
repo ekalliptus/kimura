@@ -100,6 +100,24 @@ export type Admin = {
   created_at: string;
 }
 
+export type PropertySettings = {
+  id: number;
+  name: string;
+  tagline_id: string;
+  tagline_en: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  address_short: string;
+  maps_url: string;
+  maps_lat: number;
+  maps_lng: number;
+  check_in_time: string;
+  check_out_time: string;
+  updated_at: string;
+}
+
 type Row<T> = T;
 type Insert<T, Optional extends keyof T> = Omit<T, Optional> & Partial<Pick<T, Optional>>;
 type Update<T> = Partial<T>;
@@ -141,6 +159,12 @@ export interface Database {
         Row: Row<Admin>;
         Insert: Insert<Admin, 'created_at' | 'full_name' | 'role'>;
         Update: Update<Admin>;
+        Relationships: [];
+      };
+      property_settings: {
+        Row: Row<PropertySettings>;
+        Insert: Insert<PropertySettings, 'updated_at'>;
+        Update: Update<PropertySettings>;
         Relationships: [];
       };
     };

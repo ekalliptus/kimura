@@ -11,7 +11,8 @@
     "./img": "./src/img.ts",
     "./utils": "./src/utils.ts",
     "./supabase": "./src/supabase.ts",
-    "./wa": "./src/wa.ts"
+    "./wa": "./src/wa.ts",
+    "./property": "./src/property.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
