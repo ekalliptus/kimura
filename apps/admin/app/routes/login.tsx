@@ -3,6 +3,7 @@ import { Form, useSearchParams } from 'react-router';
 import type { Route } from './+types/login';
 import { adminLang, t as tr } from '~/lib/admin-i18n';
 import { getCookie } from '~/lib/auth.server';
+import { safeNextPath } from '~/lib/request.server';
 
 export function meta() {
   return [{ title: 'Admin Sign In · Kimura Admin' }];
@@ -15,7 +16,7 @@ export function loader({ request }: Route.LoaderArgs) {
 export default function Login({ loaderData }: Route.ComponentProps) {
   const { lang } = loaderData;
   const [params] = useSearchParams();
-  const next = params.get('next') ?? '/';
+  const next = safeNextPath(params.get('next'));
   const serverError = params.get('error') === 'not_admin' ? tr(lang, 'login.not_admin') : null;
 
   const [error, setError] = useState<string | null>(null);

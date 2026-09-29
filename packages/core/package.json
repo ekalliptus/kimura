@@ -12,7 +12,8 @@
     "./utils": "./src/utils.ts",
     "./supabase": "./src/supabase.ts",
     "./wa": "./src/wa.ts",
-    "./property": "./src/property.ts"
+    "./property": "./src/property.ts",
+    "./ratelimit": "./src/ratelimit.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

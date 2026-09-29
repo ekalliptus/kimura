@@ -62,30 +62,35 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('[midtrans webhook]', `gross_amount ${grossAmount} != total_price ${booking.total_price} for ${orderId}`);
     return new Response('{"error":"amount mismatch"}', { status: 403 });
   }
-  if (booking.status !== 'pending') {
-    // Already processed, or an admin moved it manually — webhook stays no-op.
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
-  }
 
   const patch: Partial<Database['public']['Tables']['bookings']['Update']> = { status: target };
   if (target === 'confirmed') patch.confirmed_at = new Date().toISOString();
   if (target === 'cancelled') patch.cancelled_at = new Date().toISOString();
 
-  const { error } = await supabase.from('bookings').update(patch).eq('id', booking.id);
-  if (error) {
-    console.error('[midtrans webhook]', error.message, orderId);
-    return new Response('{"error":"update failed"}', { status: 200 });
+  // The pending guard is the real idempotency: a replayed/stale webhook, or one
+  // racing an admin's manual confirm (confirm_booking takes the row lock first),
+  // matches zero rows and stays a no-op.
+  const { data: updated, error } = await supabase
+    .from('bookings')
+    .update(patch)
+    .eq('id', booking.id)
+    .eq('status', 'pending')
+    .select('id, reference')
+    .single();
+  if (error || !updated) {
+    // 0 rows = already processed or admin moved it — not an error.
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }
 
   // Audit log (best-effort).
   await supabase.from('activity_logs').insert({
     action: `booking.payment_${target}`,
     category: 'booking',
-    message: `Payment ${txnStatus} — booking ${booking.reference} → ${target} (Midtrans)`,
+    message: `Payment ${txnStatus} — booking ${updated.reference} → ${target} (Midtrans)`,
     actor: 'midtrans',
     entity_type: 'booking',
-    entity_id: booking.id,
-    metadata: { reference: booking.reference, transaction_status: txnStatus, gross_amount: grossAmount },
+    entity_id: updated.id,
+    metadata: { reference: updated.reference, transaction_status: txnStatus, gross_amount: grossAmount },
   });
 
   return new Response(JSON.stringify({ ok: true }), {

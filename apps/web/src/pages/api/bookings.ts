@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase';
 import { estimateTotal, nightsBetween } from '@kimura/core/format';
 import type { RoomType, StayPackage } from '@kimura/core/database.types';
 import { bookingAdminMessage, sendWaText } from '@kimura/core/wa';
+import { rateLimit, clientIp } from '@kimura/core/ratelimit';
 import { publicClient } from '@/lib/queries';
 import { getEnv } from '@/lib/env';
 
@@ -18,6 +19,10 @@ function bad(message: string, status = 400, code?: string) {
 }
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
+  // Spam brake: booking rows + admin WA sends are the abuse surface.
+  if (!rateLimit(`bookings:${clientIp(request, clientAddress)}`, 5, 60_000)) {
+    return bad('Too many requests. Please wait a minute.', 429, 'rate_limited');
+  }
   // JSON only — blocks cross-site `text/plain`/form-encoded CSRF posts.
   const ct = request.headers.get('content-type') ?? '';
   if (!ct.includes('application/json')) return bad('Expected application/json', 415);

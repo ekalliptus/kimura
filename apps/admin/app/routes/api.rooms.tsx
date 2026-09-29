@@ -1,6 +1,7 @@
 import type { Route } from './+types/api.rooms';
 import type { RoomState, Database } from '@kimura/core/database.types';
 import { getAdminIdentity } from '~/lib/auth.server';
+import { sameOrigin } from '~/lib/request.server';
 import { getAdminClient } from '~/lib/supabase.server';
 
 const STATES: RoomState[] = ['available', 'occupied', 'maintenance', 'cleaning'];
@@ -18,6 +19,7 @@ function slugify(s: string): string {
 // POST → create a room_type or a physical room. PATCH → update room state or a
 // room_type field (pricing / featured / active).
 export async function action({ request }: Route.ActionArgs) {
+  if (!sameOrigin(request)) return Response.json({ error: 'Bad origin' }, { status: 403 });
   const admin = await getAdminIdentity(request);
   if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 

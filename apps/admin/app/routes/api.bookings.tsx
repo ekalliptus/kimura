@@ -1,6 +1,7 @@
 import type { Route } from './+types/api.bookings';
 import type { Booking, BookingStatus, Database } from '@kimura/core/database.types';
 import { getAdminIdentity } from '~/lib/auth.server';
+import { sameOrigin } from '~/lib/request.server';
 import { getAdminClient } from '~/lib/supabase.server';
 import { notifyStatusChange } from '~/lib/notify.server';
 
@@ -8,6 +9,7 @@ const VALID: BookingStatus[] = ['pending', 'confirmed', 'checked_in', 'checked_o
 
 // PATCH /api/admin/bookings → update status / room / notes for a booking.
 export async function action({ request }: Route.ActionArgs) {
+  if (!sameOrigin(request)) return Response.json({ error: 'Bad origin' }, { status: 403 });
   if (request.method !== 'PATCH') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
@@ -22,6 +24,8 @@ export async function action({ request }: Route.ActionArgs) {
   };
   if (!body.id) return Response.json({ error: 'id required' }, { status: 400 });
 
+  const svc = getAdminClient();
+
   const patch: Record<string, unknown> = {};
   if (body.status) {
     if (!VALID.includes(body.status)) return Response.json({ error: 'invalid status' }, { status: 400 });
@@ -29,14 +33,31 @@ export async function action({ request }: Route.ActionArgs) {
     if (body.status === 'confirmed') patch.confirmed_at = new Date().toISOString();
     if (body.status === 'cancelled') patch.cancelled_at = new Date().toISOString();
   }
-  if (body.room_id !== undefined) patch.room_id = body.room_id;
-  if (body.admin_notes !== undefined) patch.admin_notes = body.admin_notes;
+  if (body.room_id !== undefined && body.room_id !== null) {
+    // The assigned room must exist and belong to the booking's room type.
+    const { data: room } = await svc
+      .from('rooms')
+      .select('id, room_type_id')
+      .eq('id', body.room_id)
+      .maybeSingle();
+    if (!room) return Response.json({ error: 'room not found' }, { status: 400 });
+    const { data: bk } = await svc
+      .from('bookings')
+      .select('room_type_id')
+      .eq('id', body.id)
+      .single();
+    if (bk && room.room_type_id !== bk.room_type_id) {
+      return Response.json({ error: "room does not belong to the booking's room type" }, { status: 400 });
+    }
+    patch.room_id = body.room_id;
+  } else if (body.room_id === null) {
+    patch.room_id = null;
+  }
+  if (body.admin_notes !== undefined) patch.admin_notes = body.admin_notes.slice(0, 2000);
 
   if (Object.keys(patch).length === 0) {
     return Response.json({ error: 'nothing to update' }, { status: 400 });
   }
-
-  const svc = getAdminClient();
 
   // Confirming consumes inventory — route through the atomic RPC so two
   // simultaneous confirms for the same room_type can't oversell.

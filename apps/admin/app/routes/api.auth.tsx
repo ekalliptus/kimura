@@ -1,13 +1,13 @@
 import type { Route } from './+types/api.auth';
+import { rateLimit, clientIp } from '@kimura/core/ratelimit';
 import { getServerClient } from '~/lib/supabase.server';
+import { sameOrigin } from '~/lib/request.server';
 
 // POST → sign in (email/password), sets session cookies. DELETE → sign out.
 export async function action({ request }: Route.ActionArgs) {
 
   if (request.method === 'DELETE') {
-    const origin = request.headers.get('Origin');
-    const url = new URL(request.url);
-    if (origin && new URL(origin).host !== url.host) {
+    if (!sameOrigin(request)) {
       return Response.json({ error: 'Bad origin' }, { status: 403 });
     }
     const { supabase, headers } = getServerClient(request);
@@ -19,6 +19,14 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (request.method !== 'POST') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
+  if (!sameOrigin(request)) {
+    return Response.json({ error: 'Bad origin' }, { status: 403 });
+  }
+  // Brute-force brake, per IP (each isolate counts separately — enough in depth).
+  if (!rateLimit(`login:${clientIp(request)}`, 8, 5 * 60_000)) {
+    return Response.json({ error: 'Too many attempts. Try again in a few minutes.' }, { status: 429 });
   }
 
   let email = '', password = '';

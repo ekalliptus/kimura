@@ -10,8 +10,7 @@ import { getSiteSettings } from '@/lib/settings';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
-const rooms = await getRoomTypes();
-const site = await getSiteSettings();
+const [rooms, site] = await Promise.all([getRoomTypes(), getSiteSettings()]);
 const initialRoom = Astro.url.searchParams.get('room') ?? undefined;
 const initialPackage = Astro.url.searchParams.get('package') ?? undefined;
 const paymentsEnabled = !!getEnv().MIDTRANS_SERVER_KEY;
@@ -19,7 +18,7 @@ const paymentsEnabled = !!getEnv().MIDTRANS_SERVER_KEY;
 
 <BaseLayout title={t('book.title')}>
   <Header />
-  <main class="mx-auto max-w-5xl px-5 py-16">
+  <main id="main" class="mx-auto max-w-5xl px-5 py-16">
     <div class="max-w-2xl">
       <span class="rule-jp">{t('nav.book')}</span>
       <h1 class="mt-4 font-display text-4xl font-bold sm:text-5xl">{t('book.title')}</h1>

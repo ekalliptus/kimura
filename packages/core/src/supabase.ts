@@ -22,6 +22,8 @@ export function createServerClientWithCookies(
   return createServerClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     global: nativeFetch,
     cookies,
+    // Sessions carry the refresh token — XSS-readable without httpOnly.
+    cookieOptions: { httpOnly: true, secure: true, sameSite: 'lax', path: '/' },
   });
 }
 

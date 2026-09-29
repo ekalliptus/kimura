@@ -47,7 +47,9 @@ async function handleImage(request: Request, env: Env): Promise<Response | null>
     return new Response('Host not allowed', { status: 403 });
   }
   if (!IMG_WIDTHS.has(w)) return new Response('Width not allowed', { status: 400 });
-  const quality = Math.min(100, Math.max(40, Number.isFinite(q) ? q : 80));
+  // Quantize quality — arbitrary floats would mint unique edge transformations
+  // and burn the billed quota.
+  const quality = Math.min(100, Math.max(40, Math.round((Number.isFinite(q) ? q : 80) / 10) * 10));
 
   // Content negotiation: prefer AVIF, then WebP, else let CF pick.
   const accept = request.headers.get('Accept') ?? '';
