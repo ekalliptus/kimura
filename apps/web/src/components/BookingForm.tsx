@@ -3,6 +3,7 @@ import type { RoomType } from '@kimura/core/database.types';
 import type { Lang, UIKey } from '@kimura/core/i18n';
 import { ui } from '@kimura/core/i18n';
 import { PACKAGES, estimateTotal, formatIDR } from '@kimura/core/format';
+import { cdnImage, cdnSrcset } from '@kimura/core/img';
 import type { StayPackage } from '@kimura/core/database.types';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
 import { useRoomAvailability } from '@/lib/useAvailability';
@@ -191,7 +192,7 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage, 
         <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-accent/15 text-3xl text-accent">✓</div>
         <h2 className="mt-5 font-display text-2xl font-bold">{t('book.success.title')}</h2>
         <p className="mt-3 text-sm text-muted-foreground">{t('book.success.body')}</p>
-        <p className="mt-2 font-mono text-2xl font-bold tracking-wider text-accent">{reference}</p>
+        <p className="mt-2 select-all font-mono text-2xl font-bold tracking-wider text-accent">{reference}</p>
         <p className="mx-auto mt-4 max-w-sm text-sm text-muted-foreground">{t('book.success.note')}</p>
         <div className="mt-7 flex flex-wrap justify-center gap-2">
           {paymentsEnabled && (
@@ -371,7 +372,11 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage, 
             <div className="mb-4 aspect-4/3 w-full animate-pulse overflow-hidden rounded-lg bg-muted">
               <img
                 key={room.images[0]}
-                src={room.images[0]}
+                src={cdnImage(room.images[0], 480)}
+                srcSet={cdnSrcset(room.images[0], [320, 480, 640])}
+                sizes="(min-width: 1024px) 380px, 100vw"
+                width={480}
+                height={360}
                 alt=""
                 loading="lazy"
                 decoding="async"

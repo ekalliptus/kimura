@@ -18,7 +18,17 @@ const site = await getSiteSettings();
 const fullTitle = title ? `${title} · ${site.name}` : `${site.name} — Semarang`;
 const desc = description ?? tagline(site, lang);
 const image = ogImage ?? 'https://h-img1.cloudbeds.com/uploads/171276/9~~69b7c88371551.jpg';
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+// Keep the lang param in the canonical so ?lang=en can be indexed separately,
+// and expose hreflang alternates both ways.
+const base = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin);
+const canonicalUrl = lang === 'en' ? `${base.href}?lang=en` : base.href;
+
+// Short edge cache for the catalogue pages — bookings, prices and availability
+// change rarely relative to traffic, and 60s staleness on badges is acceptable.
+// /book stays uncacheable (form state); the API routes set their own headers.
+if (!Astro.url.pathname.startsWith('/book')) {
+  Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+}
 ---
 
 <!doctype html>
@@ -31,6 +41,9 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
     <meta name="description" content={desc} />
     <meta name="generator" content={Astro.generator} />
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="id" href={base.href} />
+    <link rel="alternate" hreflang="en" href={`${base.href}?lang=en`} />
+    <link rel="alternate" hreflang="x-default" href={base.href} />
 
     <!-- Warm the image CDN early so the LCP hero fetch starts sooner -->
     <link rel="preconnect" href="https://h-img1.cloudbeds.com" crossorigin />
@@ -75,6 +88,12 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
     <noscript><style>img[data-reveal]{opacity:1!important}</style></noscript>
   </head>
   <body class="min-h-screen bg-background text-foreground">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg"
+    >
+      {lang === 'id' ? 'Langsung ke konten' : 'Skip to content'}
+    </a>
     <slot />
 
     <!-- Robust image reveal. Inline onload is unreliable for preloaded /

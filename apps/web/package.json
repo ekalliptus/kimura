@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@astrojs/sitemap": "^3.7.4",
     "@cloudflare/workers-types": "^4.20260101.0",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^26.0.1",

@@ -7,15 +7,22 @@ import SemarangMap from '@/components/SemarangMap.tsx';
 import { getLangFromUrl, useTranslations } from '@kimura/core/i18n';
 import { getRoomTypes } from '@/lib/queries';
 import { getSiteSettings } from '@/lib/settings';
+import { getRoomAvailability } from '@/lib/queries';
 import { cdnImage, cdnSrcset } from '@kimura/core/img';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const q = lang === 'en' ? '?lang=en' : '';
 
-const rooms = await getRoomTypes();
-const site = await getSiteSettings();
+const [rooms, site] = await Promise.all([getRoomTypes(), getSiteSettings()]);
 const featured = rooms.filter((r) => r.featured).slice(0, 3);
+// Tonight's availability for the featured cards (one parallel round).
+const todayJakarta = new Date(Date.now() + 7 * 60 * 60 * 1000);
+const tonightIn = todayJakarta.toISOString().slice(0, 10);
+const tonightOut = new Date(todayJakarta.getTime() + 86_400_000).toISOString().slice(0, 10);
+const featuredAvail = new Map(
+  await Promise.all(featured.map(async (r) => [r.slug, await getRoomAvailability(r.slug, tonightIn, tonightOut)] as const)),
+);
 // Hero slideshow: cover image of every room type, deduped, order preserved.
 const heroSources = [
   ...new Set(rooms.map((r) => r.images?.[0]).filter((s): s is string => !!s)),
@@ -34,7 +41,7 @@ const heroLines = t('hero.title').split('\n');
 <BaseLayout preloadImage={heroImg}>
   <Header />
 
-  <main>
+  <main id="main">
     <!-- ===================== HERO ===================== -->
     <section class="relative overflow-hidden">
       <div class="absolute inset-0 animate-pulse bg-muted" data-hero-slideshow>
@@ -91,7 +98,7 @@ const heroLines = t('hero.title').split('\n');
         </div>
 
         <div class="mt-16 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          <span class="flex items-center gap-2"><span class="tabular-nums text-foreground">8</span> {lang === 'id' ? 'tipe kamar' : 'room types'}</span>
+          <span class="flex items-center gap-2"><span class="tabular-nums text-foreground">{rooms.length}</span> {lang === 'id' ? 'tipe kamar' : rooms.length === 1 ? 'room type' : 'room types'}</span>
           <span aria-hidden="true" class="hidden h-3 w-px bg-border sm:inline-block"></span>
           <span>{site.address_short}</span>
           <span aria-hidden="true" class="hidden h-3 w-px bg-border sm:inline-block"></span>
@@ -161,7 +168,7 @@ const heroLines = t('hero.title').split('\n');
         {
           featured.length > 0 ? (
             <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((room) => <RoomCard room={room} lang={lang} />)}
+              {featured.map((room) => <RoomCard room={room} lang={lang} avail={featuredAvail.get(room.slug) ?? null} />)}
             </div>
           ) : (
             <div class="mt-14 rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
@@ -205,7 +212,32 @@ const heroLines = t('hero.title').split('\n');
           </a>
         </div>
 
-        <SemarangMap client:only="react" lat={site.maps_lat} lng={site.maps_lng} name={site.name} address={site.address_short} />
+        <!-- The maplibre island is ~330 KB gz — hydrate it only as the section
+             approaches the viewport by cloning the inert template into the DOM. -->
+        <div id="map-slot" class="min-h-[420px] overflow-hidden rounded-xl border border-border bg-muted/40">
+          <template id="map-island">
+            <SemarangMap client:only="react" lat={site.maps_lat} lng={site.maps_lng} name={site.name} address={site.address_short} />
+          </template>
+        </div>
+        <script is:inline>
+          (() => {
+            const slot = document.getElementById('map-slot');
+            const tpl = document.getElementById('map-island');
+            if (!slot || !tpl || !('IntersectionObserver' in window)) {
+              if (slot && tpl) slot.appendChild(tpl.content.cloneNode(true));
+              return;
+            }
+            const io = new IntersectionObserver((entries) => {
+              for (const e of entries) {
+                if (e.isIntersecting) {
+                  slot.appendChild(tpl.content.cloneNode(true));
+                  io.disconnect();
+                }
+              }
+            }, { rootMargin: '300px' });
+            io.observe(slot);
+          })();
+        </script>
       </div>
     </section>
 

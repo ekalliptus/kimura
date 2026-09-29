@@ -4,16 +4,24 @@ import Header from '@/components/site/Header.astro';
 import Footer from '@/components/site/Footer.astro';
 import RoomCard from '@/components/site/RoomCard.astro';
 import { getLangFromUrl, useTranslations } from '@kimura/core/i18n';
-import { getRoomTypes } from '@/lib/queries';
+import { getRoomTypes, getRoomAvailability } from '@/lib/queries';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const rooms = await getRoomTypes();
+
+// One parallel round of availability lookups instead of one per card (N+1).
+const todayJakarta = new Date(Date.now() + 7 * 60 * 60 * 1000);
+const checkIn = todayJakarta.toISOString().slice(0, 10);
+const checkOut = new Date(todayJakarta.getTime() + 86_400_000).toISOString().slice(0, 10);
+const availBySlug = new Map(
+  await Promise.all(rooms.map(async (r) => [r.slug, await getRoomAvailability(r.slug, checkIn, checkOut)] as const)),
+);
 ---
 
 <BaseLayout title={t('rooms.title')}>
   <Header />
-  <main class="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+  <main id="main" class="mx-auto max-w-6xl px-5 py-24 sm:py-32">
     <div class="max-w-2xl">
       <span class="rule-jp">{t('nav.rooms')}</span>
       <h1 class="mt-5 font-display text-4xl font-bold sm:text-5xl">{t('rooms.title')}</h1>
@@ -30,7 +38,7 @@ const rooms = await getRoomTypes();
     {
       rooms.length > 0 ? (
         <div class="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {rooms.map((room) => <RoomCard room={room} lang={lang} />)}
+          {rooms.map((room) => <RoomCard room={room} lang={lang} avail={availBySlug.get(room.slug) ?? null} />)}
         </div>
       ) : (
         <div class="mt-16 border-y border-border py-16 text-center">

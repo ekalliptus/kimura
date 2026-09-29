@@ -13,7 +13,7 @@ const q = lang === 'en' ? '?lang=en' : '';
 const { slug } = Astro.params;
 
 const room = slug ? await getRoomType(slug) : null;
-if (!room) return Astro.redirect(`/rooms${q}`);
+if (!room) return new Response(null, { status: 404, headers: { Location: `/rooms${q}` } });
 
 const name = lang === 'id' ? (room.name_id ?? room.name) : room.name;
 const desc = lang === 'id' ? (room.description_id ?? room.description) : room.description;
@@ -31,7 +31,7 @@ const pkgPrices = PACKAGES.map((p) => ({
 
 <BaseLayout title={name} description={desc ?? undefined} ogImage={images[0]} preloadImage={images.length ? cdnImage(images[0], 800, 82) : undefined}>
   <Header />
-  <main class="mx-auto max-w-6xl px-5 pb-24 pt-8 sm:pb-32">
+  <main id="main" class="mx-auto max-w-6xl px-5 pb-24 pt-8 sm:pb-32">
     <a href={`/rooms${q}`} class="group inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
       <span aria-hidden="true" class="transition-transform duration-300 group-hover:-translate-x-1 group-hover:text-accent">←</span>
       {t('room.back')}

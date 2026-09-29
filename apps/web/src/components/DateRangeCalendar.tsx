@@ -217,6 +217,10 @@ function MonthGrid({ month, floor, inTs, outTs, previewTs, todayTs, singleMode, 
                 ? 'bg-accent/12 rounded-r-full'
                 : '';
 
+          const dayLabel = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-US', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+          }).format(new Date(iso + 'T12:00:00'));
+
           return (
             <div key={iso} className={`flex items-center justify-center ${bandCls}`}>
               <button
@@ -224,8 +228,9 @@ function MonthGrid({ month, floor, inTs, outTs, previewTs, todayTs, singleMode, 
                 disabled={disabled}
                 onClick={() => onPick(iso)}
                 onMouseEnter={() => onHover(iso)}
-                aria-label={iso}
+                aria-label={dayLabel}
                 aria-pressed={selected}
+                aria-current={isStart ? 'date' : undefined}
                 className={[
                   'relative flex size-9 items-center justify-center rounded-full text-sm transition-colors',
                   disabled

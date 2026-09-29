@@ -157,7 +157,8 @@ packages/core/src/       @kimura/core — shared by both apps
 
 supabase/migrations/     0001 schema · 0002 RLS · 0003 seed · 0004 grants ·
                          0005 availability · 0006 admin_bootstrap · 0007 harden_insert ·
-                         0008 atomic_confirm · 0009 room_images_bucket · 0010 property_settings
+                         0008 atomic_confirm · 0009 room_images_bucket · 0010 property_settings ·
+                         0011 insert hardening + snap token
 ```
 
 ## Notes

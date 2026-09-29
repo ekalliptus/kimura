@@ -71,6 +71,8 @@ export type Booking = {
   updated_at: string;
   confirmed_at: string | null;
   cancelled_at: string | null;
+  snap_token: string | null;
+  snap_token_created_at: string | null;
 }
 
 export type ActivityLog = {
@@ -139,7 +141,7 @@ export interface Database {
       };
       bookings: {
         Row: Row<Booking>;
-        Insert: Insert<Booking, 'id' | 'reference' | 'created_at' | 'updated_at' | 'room_id' | 'guest_country' | 'check_in_time' | 'check_out_time' | 'adults' | 'children' | 'nights' | 'unit_price' | 'quantity' | 'total_price' | 'currency' | 'status' | 'special_requests' | 'admin_notes' | 'source' | 'confirmed_at' | 'cancelled_at' | 'package'>;
+        Insert: Insert<Booking, 'id' | 'reference' | 'created_at' | 'updated_at' | 'room_id' | 'guest_country' | 'check_in_time' | 'check_out_time' | 'adults' | 'children' | 'nights' | 'unit_price' | 'quantity' | 'total_price' | 'currency' | 'status' | 'special_requests' | 'admin_notes' | 'source' | 'confirmed_at' | 'cancelled_at' | 'package' | 'snap_token' | 'snap_token_created_at'>;
         Update: Update<Booking>;
         Relationships: [];
       };

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://kimura.ekalliptus.com/sitemap-index.xml

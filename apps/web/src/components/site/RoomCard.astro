@@ -3,14 +3,15 @@ import type { RoomType } from '@kimura/core/database.types';
 import type { Lang } from '@kimura/core/i18n';
 import { useTranslations } from '@kimura/core/i18n';
 import { fromPrice, formatIDR } from '@kimura/core/format';
-import { getRoomAvailability } from '@/lib/queries';
 import { cdnImage, cdnSrcset } from '@kimura/core/img';
 
 interface Props {
   room: RoomType;
   lang: Lang;
+  /** Tonight's availability, prefetched by the page (avoids N+1 RPCs). */
+  avail?: { total: number; booked: number; available: number } | null;
 }
-const { room, lang } = Astro.props;
+const { room, lang, avail = null } = Astro.props;
 const t = useTranslations(lang);
 const q = lang === 'en' ? '?lang=en' : '';
 
@@ -21,17 +22,8 @@ const cover = coverSrc ? cdnImage(coverSrc, 640) : undefined;
 // Cards render ~1 col (full-width ≤640) → 3 cols (~400px) depending on viewport.
 const coverSrcset = coverSrc ? cdnSrcset(coverSrc, [320, 480, 640], 80) : undefined;
 const price = fromPrice(room);
-
-// Fetch availability tonight (Jakarta UTC+7)
-const d = new Date();
-const jakartaTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-const checkIn = jakartaTime.toISOString().slice(0, 10);
-const tomorrow = new Date(jakartaTime.getTime() + 24 * 60 * 60 * 1000);
-const checkOut = tomorrow.toISOString().slice(0, 10);
-
-const avail = await getRoomAvailability(room.slug, checkIn, checkOut);
 const available = avail?.available ?? 0;
-const hasAvailability = avail !== null;
+const hasAvailability = avail !== null && avail !== undefined;
 
 const showFullyBooked = hasAvailability && available <= 0;
 const showOnlyOneLeft = hasAvailability && available > 0 && available <= 1;
