@@ -12,36 +12,71 @@ export function meta() {
 export async function loader({ request }: Route.LoaderArgs) {
   const { supabase, lang, headers } = await requireAdmin(request);
 
-  const [bookingsRes, keepAliveRes, logsRes] = await Promise.all([
-    supabase.from('bookings').select('*').order('created_at', { ascending: false }).limit(500),
-    supabase.from('keep_alive').select('*').eq('id', 1).maybeSingle(),
-    supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(6),
-  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = today.slice(0, 8) + '01';
 
-  const bookings = (bookingsRes.data ?? []) as Booking[];
+  // Counts via head queries (exact, not sampled); recent rows fetched separately.
+  const [pendingRes, checkedInRes, arrivalsRes, departuresRes, totalRes, monthRes, keepAliveRes, logsRes] =
+    await Promise.all([
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'checked_in'),
+      supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('check_in', today)
+        .in('status', ['confirmed', 'pending']),
+      supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('check_out', today)
+        .in('status', ['confirmed', 'checked_in']),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }),
+      supabase
+        .from('bookings')
+        .select('total_price')
+        .gte('check_in', monthStart)
+        .not('status', 'in', '(cancelled,no_show)')
+        .limit(2000),
+      supabase.from('keep_alive').select('*').eq('id', 1).maybeSingle(),
+      supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(6),
+    ]);
+
+  const recentRes = await supabase
+    .from('bookings')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  const monthValue = (monthRes.data ?? []).reduce((sum, b) => sum + (b.total_price ?? 0), 0);
+
   return data(
-    { lang, bookings, keepAlive: keepAliveRes.data, recentLogs: logsRes.data ?? [] },
+    {
+      lang,
+      counts: {
+        pending: pendingRes.count ?? 0,
+        checkedIn: checkedInRes.count ?? 0,
+        arrivals: arrivalsRes.count ?? 0,
+        departures: departuresRes.count ?? 0,
+        total: totalRes.count ?? 0,
+      },
+      monthValue,
+      keepAlive: keepAliveRes.data,
+      recentLogs: logsRes.data ?? [],
+      recent: (recentRes.data ?? []) as Booking[],
+    },
     { headers },
   );
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { lang, bookings, keepAlive, recentLogs } = loaderData;
-
-  const pending = bookings.filter((b) => b.status === 'pending');
-  const checkedIn = bookings.filter((b) => b.status === 'checked_in');
+  const { lang, counts, monthValue, keepAlive, recentLogs, recent } = loaderData;
   const today = new Date().toISOString().slice(0, 10);
-  const arrivalsToday = bookings.filter((b) => b.check_in === today && ['confirmed', 'pending'].includes(b.status));
-  const revenue = bookings
-    .filter((b) => !['cancelled', 'no_show'].includes(b.status))
-    .reduce((sum, b) => sum + (b.total_price ?? 0), 0);
-  const recent = bookings.slice(0, 8);
 
   const stats = [
-    { label: tr(lang, 'dash.pending'), value: pending.length, hint: tr(lang, 'dash.pending_hint'), accent: true },
-    { label: tr(lang, 'dash.checked_in'), value: checkedIn.length, hint: tr(lang, 'dash.checked_in_hint'), accent: false },
-    { label: tr(lang, 'dash.arrivals'), value: arrivalsToday.length, hint: today, accent: false },
-    { label: tr(lang, 'dash.total'), value: bookings.length, hint: tr(lang, 'dash.all_time'), accent: false },
+    { label: tr(lang, 'dash.pending'), value: counts.pending, hint: tr(lang, 'dash.pending_hint'), accent: true },
+    { label: tr(lang, 'dash.checked_in'), value: counts.checkedIn, hint: tr(lang, 'dash.checked_in_hint'), accent: false },
+    { label: tr(lang, 'dash.arrivals'), value: counts.arrivals, hint: today, accent: false },
+    { label: tr(lang, 'dash.departures'), value: counts.departures, hint: today, accent: false },
   ];
 
   const lastPing = keepAlive?.pinged_at ? new Date(keepAlive.pinged_at) : null;
@@ -96,9 +131,11 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
         <div className="space-y-6">
           <div className="rounded-xl border border-border bg-card p-5">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">{tr(lang, 'dash.booked_value')}</div>
-            <div className="mt-2 font-display text-2xl font-bold">{formatIDR(revenue)}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{tr(lang, 'dash.excl_cancelled')}</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">{tr(lang, 'dash.revenue_month')}</div>
+            <div className="mt-2 font-display text-2xl font-bold">{formatIDR(monthValue)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {tr(lang, 'dash.all_time')}: {counts.total} · {tr(lang, 'dash.excl_cancelled')}
+            </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-5">

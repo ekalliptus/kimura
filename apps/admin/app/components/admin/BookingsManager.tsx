@@ -43,11 +43,13 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
   const [filter, setFilter] = useState<BookingStatus | 'all'>('all');
   const [query, setQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selected, setSelected] = useState<Booking | null>(
     focusRef ? initialBookings.find((b) => b.reference === focusRef) ?? null : null,
   );
   const [busy, setBusy] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null);
 
   const rtName = (id: string) => roomTypes.find((r) => r.id === id)?.name ?? '—';
   const roomsFor = (rtId: string) => rooms.filter((r) => r.room_type_id === rtId);
@@ -55,6 +57,9 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
   const filtered = useMemo(() => {
     return bookings.filter((b) => {
       if (filter !== 'all' && b.status !== filter) return false;
+      // Stay-overlaps filter: booking touches any night in the selected range.
+      if (dateFrom && b.check_out < dateFrom) return false;
+      if (dateTo && b.check_in > dateTo) return false;
       if (query) {
         const q = query.toLowerCase();
         return (
@@ -66,7 +71,12 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
       }
       return true;
     });
-  }, [bookings, filter, query]);
+  }, [bookings, filter, query, dateFrom, dateTo]);
+
+  function flash(msg: string, error = false) {
+    setToast({ msg, error });
+    setTimeout(() => setToast(null), error ? 3500 : 2500);
+  }
 
   async function patch(id: string, body: Record<string, unknown>, okMsg: string, confirmKey?: 'bk.cancel_confirm' | 'bk.noshow_confirm', ref = '') {
     if (confirmKey && !window.confirm(tr(lang, confirmKey).replace('{ref}', ref))) return;
@@ -84,11 +94,9 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
       const applied = { ...body, ...(body.status && data.status ? { status: data.status } : {}) } as Partial<Booking>;
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...applied } as Booking : b)));
       setSelected((s) => (s && s.id === id ? ({ ...s, ...applied } as Booking) : s));
-      setToast(okMsg);
-      setTimeout(() => setToast(null), 2500);
+      flash(okMsg);
     } catch (err) {
-      setToast(err instanceof Error ? err.message : 'Error');
-      setTimeout(() => setToast(null), 3500);
+      flash(err instanceof Error ? err.message : 'Error', true);
     } finally {
       setBusy(null);
     }
@@ -122,8 +130,27 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={tr(lang, 'bk.search')}
-          className="ml-auto w-full max-w-xs rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="w-full max-w-xs rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{tr(lang, 'bk.stay_dates')}</span>
+        <input
+          type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+          aria-label={tr(lang, 'bk.check_in')}
+          className="rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+        />
+        <span className="text-xs text-muted-foreground">→</span>
+        <input
+          type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+          aria-label={tr(lang, 'bk.check_out')}
+          className="rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+        />
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary">
+            {tr(lang, 'bk.clear_dates')}
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -177,7 +204,13 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
           <div className="h-full w-full max-w-md overflow-y-auto bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
-                <div className="font-mono text-sm text-muted-foreground">{selected.reference}</div>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(selected.reference)}
+                  title={tr(lang, 'bk.copy_ref')}
+                  className="font-mono text-sm text-muted-foreground hover:text-accent"
+                >
+                  {selected.reference} ⧉
+                </button>
                 <h2 className="mt-1 font-display text-xl font-bold">{selected.guest_name}</h2>
               </div>
               <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">✕</button>
@@ -230,8 +263,13 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-lg">
-          {toast}
+        <div
+          role="status"
+          className={`fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg ${
+            toast.error ? 'bg-destructive text-white' : 'bg-primary text-primary-foreground'
+          }`}
+        >
+          {toast.msg}
         </div>
       )}
     </div>

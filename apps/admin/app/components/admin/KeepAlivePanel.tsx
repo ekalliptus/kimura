@@ -18,7 +18,7 @@ export default function KeepAlivePanel({ initial, lang }: { initial: KeepAlive |
     try {
       const res = await fetch('/api/admin/keepalive', { method: 'POST' });
       const data = (await res.json()) as { keep_alive?: KeepAlive; elapsed_ms?: number; error?: string };
-      if (!res.ok) throw new Error(data.error ?? tr(lang, 'sys.ping_ok'));
+      if (!res.ok) throw new Error(data.error ?? tr(lang, 'sys.ping_failed'));
       setKa(data.keep_alive ?? null);
       setMsg(`${tr(lang, 'sys.ping_ok')} (${data.elapsed_ms}ms)`);
     } catch (e) {

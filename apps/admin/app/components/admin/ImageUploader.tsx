@@ -95,7 +95,15 @@ export default function ImageUploader({
         const ext = blob.type.split('/')[1]?.split('+')[0] || 'webp';
         const fd = new FormData();
         fd.append('file', new File([blob], `${id}.${ext}`, { type: blob.type }));
-        const res = await fetch('/api/admin/images', { method: 'POST', body: fd });
+        // A hung upload must never wedge Save — 30s ceiling, then error path.
+        const ctrl = new AbortController();
+        const abortTimer = setTimeout(() => ctrl.abort(), 30_000);
+        let res: Response;
+        try {
+          res = await fetch('/api/admin/images', { method: 'POST', body: fd, signal: ctrl.signal });
+        } finally {
+          clearTimeout(abortTimer);
+        }
         if (!res.ok) {
           setError(tr(lang, 'rm.img_failed'));
           continue;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink, Form, useLoaderData, useLocation } from 'react-router';
+import { Outlet, NavLink, Form, useLoaderData, useLocation, useNavigation } from 'react-router';
 import type { Route } from './+types/admin-layout';
 import { requireAdmin } from '~/lib/auth.server';
 import { t as tr, type AdminLang, type StringKey } from '~/lib/admin-i18n';
@@ -21,6 +21,7 @@ const NAV: { to: string; end?: boolean; labelKey: StringKey; icon: string }[] = 
 export default function AdminLayout() {
   const { user, lang } = useLoaderData<{ user: { email: string | null }; lang: AdminLang }>();
   const { pathname } = useLocation();
+  const navigation = useNavigation();
   const title = pageTitle(pathname, lang);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -111,8 +112,17 @@ export default function AdminLayout() {
           </div>
         </nav>
 
-        <main className="flex-1 overflow-x-hidden p-4 sm:p-6">
-          <Outlet />
+        <main className="relative flex-1 overflow-x-hidden p-4 sm:p-6">
+          {navigation.state !== 'idle' && (
+            <div
+              className="absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse bg-accent"
+              role="progressbar"
+              aria-label="Loading"
+            />
+          )}
+          <div className={navigation.state !== 'idle' ? 'pointer-events-none opacity-60 transition-opacity' : 'transition-opacity'}>
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

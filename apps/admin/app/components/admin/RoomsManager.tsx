@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Room, RoomState, RoomType } from '@kimura/core/database.types';
 import { formatIDR } from '@kimura/core/format';
 import type { AdminLang } from '~/lib/admin-i18n';
@@ -40,6 +40,7 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
   const [editing, setEditing] = useState<{ id: string; field: PriceField } | null>(null);
   const [draft, setDraft] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
   const [creating, setCreating] = useState<'type' | 'room' | null>(null);
   const [editType, setEditType] = useState<RoomType | null>(null);
 
@@ -69,12 +70,25 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
     } catch (e) { flash(e instanceof Error ? e.message : 'Error'); }
   }
 
+  async function patchRoomActive(id: string, active: boolean) {
+    try {
+      const res = await fetch('/api/admin/rooms', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'room', id, active }),
+      });
+      if (!res.ok) throw new Error(((await res.json()) as { error?: string }).error ?? 'Failed');
+      setUnits((p) => p.map((r) => (r.id === id ? { ...r, active } : r)));
+      flash(active ? tr(lang, 'rm.reactivated') : tr(lang, 'rm.deactivated'));
+    } catch (e) { flash(e instanceof Error ? e.message : 'Error'); }
+  }
+
   function startEdit(id: string, field: PriceField, current: number | null) {
     setEditing({ id, field });
     setDraft(current?.toString() ?? '');
+    cancelledRef.current = false;
   }
   async function commitEdit() {
-    if (!editing) return;
+    if (!editing || cancelledRef.current) return;
     const value = num(draft);
     if (draft.trim() !== '' && value === null) { setEditing(null); return; }
     await patchType(editing.id, editing.field, value, tr(lang, 'rm.price_updated'));
@@ -82,14 +96,7 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
   }
 
   async function createdType(row: Record<string, unknown>) {
-    // Refresh from server so we get id + defaults sorted; simplest: reload types list.
-    const res = await fetch('/api/admin/rooms?list=types', { headers: { 'Content-Type': 'application/json' } }).catch(() => null);
-    // Fallback: we don't have a list endpoint — optimistically fetch room_types via the same admin client path isn't available client-side.
-    // Instead append a minimal object so the table updates; full reload on next nav.
-    const slug = (row.slug as string) ?? '';
     setTypes((p) => [...p, { ...(row as any) }]);
-    void res;
-    void slug;
   }
 
   return (
@@ -145,7 +152,7 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
                       <td key={f.key} className="px-4 py-3">
                         {isEditing ? (
                           <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)}
-                            onBlur={commitEdit} onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null); }}
+                            onBlur={commitEdit} onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { cancelledRef.current = true; setEditing(null); } }}
                             className="w-24 rounded border border-accent bg-background px-2 py-1 text-sm outline-none" />
                         ) : (
                           <button onClick={() => startEdit(rt.id, f.key, val)} className="rounded px-1 py-0.5 text-left hover:bg-secondary">
@@ -179,19 +186,27 @@ export default function RoomsManager({ roomTypes, rooms, lang }: Props) {
             const rt = types.find((tt) => tt.id === r.room_type_id);
             const cur = STATES.find((s) => s.key === r.state)!;
             return (
-              <div key={r.id} className="rounded-xl border border-border bg-card p-4">
+              <div key={r.id} className={`rounded-xl border border-border bg-card p-4 ${!r.active ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="font-display text-lg font-semibold">{tr(lang, 'rm.room')} {r.room_number}</div>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${cur.color}`}>{tr(lang, cur.labelKey)}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${r.active ? cur.color : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'}`}>
+                    {r.active ? tr(lang, cur.labelKey) : tr(lang, 'rm.inactive')}
+                  </span>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">{rt?.name} · {tr(lang, 'rm.floor')} {r.floor ?? '—'}</div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {STATES.map((s) => (
+                  {r.active && STATES.map((s) => (
                     <button key={s.key} onClick={() => patchRoom(r.id, s.key)} disabled={r.state === s.key}
                       className={`rounded-md px-2 py-1 text-xs transition-colors ${r.state === s.key ? 'cursor-default bg-secondary font-medium' : 'border border-border hover:bg-secondary'}`}>
                       {tr(lang, s.labelKey)}
                     </button>
                   ))}
+                  <button
+                    onClick={() => patchRoomActive(r.id, !r.active)}
+                    className={`ml-auto rounded-md px-2 py-1 text-xs transition-colors border border-border hover:bg-secondary ${r.active ? 'text-destructive' : 'text-green-700 dark:text-green-300'}`}
+                  >
+                    {r.active ? tr(lang, 'rm.deactivate') : tr(lang, 'rm.reactivate')}
+                  </button>
                 </div>
               </div>
             );
