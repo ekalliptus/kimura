@@ -3,7 +3,7 @@ import { Form, useSearchParams } from 'react-router';
 import type { Route } from './+types/login';
 import { adminLang, t as tr } from '~/lib/admin-i18n';
 import { getCookie } from '~/lib/auth.server';
-import { safeNextPath } from '~/lib/request.server';
+import { safeNextPath } from '~/lib/paths';
 
 export function meta() {
   return [{ title: 'Admin Sign In · Kimura Admin' }];

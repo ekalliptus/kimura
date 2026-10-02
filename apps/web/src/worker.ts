@@ -1,22 +1,10 @@
 import { handle } from '@astrojs/cloudflare/handler';
 import { createClient } from '@supabase/supabase-js';
-
-// Allowed resize widths — MUST match IMG_WIDTHS in src/lib/img.ts. Clamping to a
-// fixed list bounds the number of unique transformations (the billed unit), so a
-// malicious `?w=<arbitrary>` can't blow past Cloudflare's 5,000/month free tier.
-const IMG_WIDTHS = new Set([320, 480, 640, 800, 1280, 1920]);
-// Only proxy images from the Cloudbeds CDN. Prevents the route being used as an
-// open image proxy for arbitrary origins (abuse + cost vector).
-const IMG_HOST = /^h-img\d+\.cloudbeds\.com$/;
-// Uploaded room photos: the Supabase public `room-images` bucket. Allow ONLY
-// this exact path prefix on the Supabase host — a bare host check would proxy
-// every public bucket. MUST stay in sync with canOptimize() in
-// packages/core/src/img.ts. Host is derived per-request from env.SUPABASE_URL.
-const SUPABASE_IMG_PREFIX = '/storage/v1/object/public/room-images/';
+import { canOptimizeWithHost, supabaseImgHost, IMG_WIDTHS } from '@kimura/core/img';
 
 /**
  * GET /_img?w=&q=&src= — edge image optimization via Cloudflare Image
- * Transformations. Resizes the remote Cloudbeds source and negotiates AVIF/WebP
+ * Transformations. Resizes the remote source and negotiates AVIF/WebP
  * from the Accept header. Returns null when the request isn't a valid /_img call
  * so the caller falls through to Astro SSR.
  */
@@ -36,14 +24,7 @@ async function handleImage(request: Request, env: Env): Promise<Response | null>
   } catch {
     return new Response('Bad src', { status: 400 });
   }
-  let supabaseHost = '';
-  try {
-    supabaseHost = new URL(env.SUPABASE_URL).hostname;
-  } catch { /* unset/malformed → Supabase source simply not allowed */ }
-  const allowed =
-    IMG_HOST.test(target.hostname) ||
-    (target.hostname === supabaseHost && target.pathname.startsWith(SUPABASE_IMG_PREFIX));
-  if (target.protocol !== 'https:' || !allowed) {
+  if (target.protocol !== 'https:' || !canOptimizeWithHost(src, supabaseImgHost(env.SUPABASE_URL))) {
     return new Response('Host not allowed', { status: 403 });
   }
   if (!IMG_WIDTHS.has(w)) return new Response('Width not allowed', { status: 400 });

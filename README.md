@@ -5,7 +5,7 @@ Japanese-minimalist booking site + admin panel for **Kimura Kostay Semarang**.
 - **Public site** (bilingual ID/EN): landing, rooms, room detail, reservation flow, map.
 - **Admin panel** (`/admin`): dashboard, bookings workflow, room/pricing management,
   live activity console, and Supabase keep-alive control.
-- **Reservation-only** flow — no payment gateway. Guests submit → admin confirms manually.
+- **Reservations** with optional Midtrans Snap payments (off by default) and WhatsApp notifications via Fonnte.
 
 ## Architecture
 
@@ -15,7 +15,7 @@ Bun-workspace monorepo deploying to **two Cloudflare Workers**, sharing one Supa
 |-----|------|--------|
 | `apps/web` | Astro 7 (SSR) — public site | kimura.ekalliptus.com |
 | `apps/admin` | React Router v7 (framework mode) — admin panel | admin.kimura.ekalliptus.com |
-| `packages/core` | Shared lib (`@kimura/core`): database.types, format, hotel, i18n, img, utils, supabase | — |
+| `packages/core` | Shared lib (`@kimura/core`): database.types, format, hotel, property, i18n, img, utils, supabase, wa, ratelimit | — |
 
 ## Stack
 
@@ -226,3 +226,7 @@ curl -X POST http://localhost:4321/api/payments/midtrans/webhook \
 | `bun run --filter @kimura/web check` | Astro typecheck |
 | `bun run --filter @kimura/admin check` | RR typegen + tsc |
 | `bun run --filter @kimura/<app> deploy` | Build + deploy one worker |
+
+## License
+
+[MIT](LICENSE).

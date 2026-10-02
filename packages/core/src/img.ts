@@ -13,31 +13,52 @@
  * deployed Worker (import.meta.env.PROD).
  */
 
-// Keep in sync with IMG_WIDTHS in src/worker.ts.
-export const IMG_WIDTHS = [320, 480, 640, 800, 1280, 1920] as const;
+export const IMG_WIDTHS = new Set([320, 480, 640, 800, 1280, 1920]);
+const IMG_BUCKET_ORDER = [...IMG_WIDTHS].sort((a, b) => a - b);
 
 const ALLOWED_HOST = /^h-img\d+\.cloudbeds\.com$/;
 // Uploaded room photos live in the Supabase public `room-images` bucket. Allow
 // ONLY that host + path prefix — a bare host check would make /_img an open proxy
-// for every public bucket. MUST stay in sync with the same check in
-// apps/web/src/worker.ts (which derives the host from env.SUPABASE_URL).
-const SUPABASE_IMG_HOST = 'ptrbczteqpyamwasidai.supabase.co';
+// for every public bucket. The host is the project's own SUPABASE_URL host;
+// the /_img route derives it per-request from env (keep checks in sync).
 const SUPABASE_IMG_PREFIX = '/storage/v1/object/public/room-images/';
+
+export function supabaseImgHost(supabaseUrl: string): string {
+  try {
+    return new URL(supabaseUrl).hostname;
+  } catch {
+    return '';
+  }
+}
 
 /** Smallest allowed bucket ≥ requested width (or the largest bucket). */
 function bucket(width: number): number {
-  return IMG_WIDTHS.find((w) => w >= width) ?? IMG_WIDTHS[IMG_WIDTHS.length - 1];
+  return IMG_BUCKET_ORDER.find((w) => w >= width) ?? IMG_BUCKET_ORDER[IMG_BUCKET_ORDER.length - 1];
 }
 
-export function canOptimize(src: string | null | undefined): src is string {
-  if (!src) return false;
+/** Runtime check with the live host (used by the /_img route). */
+export function canOptimizeWithHost(src: string, imgHost: string): boolean {
+  if (!src || !imgHost) return false;
   try {
     const u = new URL(src);
     if (ALLOWED_HOST.test(u.hostname)) return true;
-    return u.hostname === SUPABASE_IMG_HOST && u.pathname.startsWith(SUPABASE_IMG_PREFIX);
+    return u.hostname === imgHost && u.pathname.startsWith(SUPABASE_IMG_PREFIX);
   } catch {
     return false;
   }
+}
+
+/**
+ * Build-time variant used by cdnImage/cdnSrcset during SSR render: the render
+ * env supplies the host. Kept as a thin wrapper so call sites stay env-free.
+ */
+let activeImgHost = '';
+export function setSupabaseImgHost(supabaseUrl: string): void {
+  activeImgHost = supabaseImgHost(supabaseUrl);
+}
+
+export function canOptimize(src: string | null | undefined): src is string {
+  return canOptimizeWithHost(src ?? '', activeImgHost);
 }
 
 /**
