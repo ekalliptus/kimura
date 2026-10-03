@@ -1,4 +1,4 @@
-# Kimura Kostay — Hotel Booking SaaS
+# Kimura Kostay: Hotel Booking SaaS
 
 Japanese-minimalist booking site + admin panel for **Kimura Kostay Semarang**.
 
@@ -13,9 +13,9 @@ Bun-workspace monorepo deploying to **two Cloudflare Workers**, sharing one Supa
 
 | App | Tech | Domain |
 |-----|------|--------|
-| `apps/web` | Astro 7 (SSR) — public site | kimura.ekalliptus.com |
-| `apps/admin` | React Router v7 (framework mode) — admin panel | admin.kimura.ekalliptus.com |
-| `packages/core` | Shared lib (`@kimura/core`): database.types, format, hotel, property, i18n, img, utils, supabase, wa, ratelimit | — |
+| `apps/web` | Astro 7 (SSR): public site | kimura.ekalliptus.com |
+| `apps/admin` | React Router v7 (framework mode): admin panel | admin.kimura.ekalliptus.com |
+| `packages/core` | Shared lib (`@kimura/core`): database.types, format, hotel, property, i18n, img, utils, supabase, wa, ratelimit | n/a |
 
 ## Stack
 
@@ -46,13 +46,13 @@ bun install
 
 Run the migrations **in order** via the Supabase SQL Editor (or the CLI):
 
-1. `supabase/migrations/0001_init.sql` — tables, enums, triggers, keep-alive row
-2. `supabase/migrations/0002_rls.sql` — Row Level Security + `is_admin()`
-3. `supabase/migrations/0003_seed.sql` — 8 room types + sample inventory
-4. `supabase/migrations/0004_grants.sql` — role grants (RLS runs on top of these)
-5. `supabase/migrations/0005_availability.sql` — `room_type_availability()` (soft inventory)
-6. `supabase/migrations/0006_admin_bootstrap.sql` — `promote_admin()` helper
-7. `supabase/migrations/0007_harden_booking_insert.sql` — constrain anon booking insert
+1. `supabase/migrations/0001_init.sql`: tables, enums, triggers, keep-alive row
+2. `supabase/migrations/0002_rls.sql`: Row Level Security + `is_admin()`
+3. `supabase/migrations/0003_seed.sql`: 8 room types + sample inventory
+4. `supabase/migrations/0004_grants.sql`: role grants (RLS runs on top of these)
+5. `supabase/migrations/0005_availability.sql`: `room_type_availability()` (soft inventory)
+6. `supabase/migrations/0006_admin_bootstrap.sql`: `promote_admin()` helper
+7. `supabase/migrations/0007_harden_booking_insert.sql`: constrain anon booking insert
 
 > With the Supabase CLI: `supabase db push` (after `supabase link`).
 
@@ -97,7 +97,7 @@ curl 'http://localhost:8787/__scheduled?cron=17+7+*+*+1,4'
 
 Each app deploys as its own worker. Run these from inside each app dir.
 
-### a) Web worker — session KV namespace (one-time)
+### a) Web worker: session KV namespace (one-time)
 
 The Astro Cloudflare adapter injects a sessions driver bound to `SESSION`.
 We don't use Astro sessions, but the binding must exist:
@@ -122,7 +122,7 @@ bun run --filter @kimura/web deploy     # → kimura.ekalliptus.com
 bun run --filter @kimura/admin deploy   # → admin.kimura.ekalliptus.com
 ```
 
-The cron (`17 7 * * 1,4` — Mon & Thu 07:17 UTC) lives in the **web** worker and
+The cron (`17 7 * * 1,4`: Mon & Thu 07:17 UTC) lives in the **web** worker and
 pings the database so the Supabase free-tier project never pauses. Verify it in
 the admin panel under **System → Supabase Keep-Alive** (or hit **Ping now**).
 
@@ -152,7 +152,7 @@ apps/admin/              React Router v7 admin (→ admin.kimura.ekalliptus.com)
     root.tsx, app.css
   workers/app.ts         Worker entry (RR request handler)
 
-packages/core/src/       @kimura/core — shared by both apps
+packages/core/src/       @kimura/core: shared by both apps
                          database.types, format, hotel, property, i18n, img, utils, supabase, wa
 
 supabase/migrations/     0001 schema · 0002 RLS · 0003 seed · 0004 grants ·
@@ -172,7 +172,7 @@ supabase/migrations/     0001 schema · 0002 RLS · 0003 seed · 0004 grants ·
 
 ## WhatsApp & Payments
 
-Both integrations are **off by default** — the apps behave exactly as before
+Both integrations are **off by default**: the apps behave exactly as before
 until the env vars below are set (`wrangler secret put` per worker in
 production; `.dev.vars` locally).
 
