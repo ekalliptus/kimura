@@ -12,11 +12,18 @@ export function formatIDR(amount: number | null | undefined): string {
 }
 
 export function formatDate(iso: string, lang: Lang = 'id'): string {
+  // Date-only strings parse as UTC midnight; noon-anchoring keeps the calendar
+  // day stable in any timezone west of UTC (admin browsers can be UTC-X).
   return new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(iso));
+  }).format(new Date(iso.length === 10 ? iso + 'T12:00:00' : iso));
+}
+
+/** Today's ISO date (yyyy-mm-dd) in property time (WIB, UTC+7). */
+export function todayWIB(): string {
+  return new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
 }
 
 export function formatDateTime(iso: string, lang: Lang = 'id'): string {

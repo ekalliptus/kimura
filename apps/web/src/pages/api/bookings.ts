@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseAdminClient } from '@/lib/supabase';
-import { estimateTotal, nightsBetween } from '@kimura/core/format';
+import { estimateTotal, nightsBetween, todayWIB } from '@kimura/core/format';
 import type { RoomType, StayPackage } from '@kimura/core/database.types';
 import { bookingAdminMessage, sendWaText } from '@kimura/core/wa';
 import { rateLimit, clientIp } from '@kimura/core/ratelimit';
@@ -61,8 +61,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     }
   }
   // Property runs on WIB (UTC+7); "today" must not lag the guest's calendar.
-  const todayWIB = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
-  if (check_in < todayWIB) return bad('check_in cannot be in the past', 400, 'past_dates');
+  const todayWib = todayWIB();
+  if (check_in < todayWib) return bad('check_in cannot be in the past', 400, 'past_dates');
   if (check_out < check_in) return bad('check_out must be on/after check_in');
   // half_day is a same-day stay (check_out may equal check_in). Overnight
   // packages must span at least one night.
@@ -81,7 +81,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   // Clamp guests to the room type's capacity (UI caps it too; server enforces).
   const adults = Math.min(Math.max(1, Number(body.adults ?? 1) || 1), (room as RoomType).max_occupancy || 16);
-  const children = Math.max(0, Number(body.children ?? 0) || 0);
+  const children = Math.min(Math.max(0, Number(body.children ?? 0) || 0), 20);
 
   const rt = room as RoomType;
   const { unit, quantity, total } = estimateTotal(rt, pkg, check_in, check_out);

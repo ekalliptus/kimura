@@ -20,7 +20,7 @@ export default function SemarangMap({ className, lat = HOTEL.lat, lng = HOTEL.ln
       <MapMarker longitude={lng} latitude={lat}>
         <MarkerContent>
           <div className="relative flex items-center justify-center">
-            <span className="absolute size-8 animate-ping rounded-full bg-[oklch(0.62_0.105_52)] opacity-30" />
+            <span className="absolute size-8 animate-ping rounded-full bg-[oklch(0.62_0.105_52)] opacity-30 motion-reduce:animate-none" />
             <span className="relative flex size-5 items-center justify-center rounded-full bg-[oklch(0.62_0.105_52)] text-[10px] font-bold text-white shadow-lg ring-2 ring-white">
               木
             </span>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { todayWIB } from '@kimura/core/format';
 
 interface Props {
   /** ISO yyyy-mm-dd */
@@ -31,7 +32,8 @@ function addDaysISO(iso: string, days: number): string {
  * + hover preview make the selection legible. `singleMode` disables ranges.
  */
 export default function DateRangeCalendar({ checkIn, checkOut, minDate, onChange, locale, singleMode, stepDays = 1 }: Props) {
-  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // Property-time today (WIB), so past-date gating matches the server.
+  const todayISO = useMemo(() => todayWIB(), []);
   const floor = minDate ?? todayISO;
 
   // Month the left pane shows. Initialise to the check-in month, else today.

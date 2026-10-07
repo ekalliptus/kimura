@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { RoomType } from '@kimura/core/database.types';
 import type { Lang, UIKey } from '@kimura/core/i18n';
 import { ui } from '@kimura/core/i18n';
-import { PACKAGES, estimateTotal, formatIDR } from '@kimura/core/format';
+import { PACKAGES, estimateTotal, formatIDR, todayWIB } from '@kimura/core/format';
 import { cdnImage, cdnSrcset } from '@kimura/core/img';
 import type { StayPackage } from '@kimura/core/database.types';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -19,8 +19,10 @@ interface Props {
   whatsapp?: string;
 }
 
+// "Today" in property time (WIB) — matches the server's past-date gate, so a
+// guest booking after midnight WIB can pick today without a false rejection.
 function todayISO(offsetDays = 0): string {
-  const d = new Date();
+  const d = new Date(todayWIB() + 'T12:00:00');
   d.setDate(d.getDate() + offsetDays);
   return d.toISOString().slice(0, 10);
 }
@@ -369,7 +371,7 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage, 
       <aside className="h-fit lg:sticky lg:top-24">
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           {room?.images?.[0] && (
-            <div className="mb-4 aspect-4/3 w-full animate-pulse overflow-hidden rounded-lg bg-muted">
+            <div className="mb-4 aspect-4/3 w-full animate-pulse overflow-hidden rounded-lg bg-muted motion-reduce:animate-none">
               <img
                 key={room.images[0]}
                 src={cdnImage(room.images[0], 480)}
@@ -439,7 +441,7 @@ export default function BookingForm({ rooms, lang, initialRoom, initialPackage, 
           </div>
 
           {status === 'error' && (
-            <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMsg}</p>
+            <p role="alert" className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMsg}</p>
           )}
 
           <button

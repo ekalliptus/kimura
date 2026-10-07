@@ -5,7 +5,6 @@ import { getSiteSettings } from '@/lib/settings';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
-const q = lang === 'en' ? '?lang=en' : '';
 const year = new Date().getFullYear();
 const site = await getSiteSettings();
 ---
@@ -28,6 +27,9 @@ const site = await getSiteSettings();
         <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
           <li><a href={`tel:${site.phone}`} class="rounded-sm tabular-nums transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{site.phone}</a></li>
           <li><a href={`mailto:${site.email}`} class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">{site.email}</a></li>
+          {site.whatsapp && (
+            <li><a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener" class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">WhatsApp</a></li>
+          )}
           <li class="pt-1 tabular-nums">{t('contact.checkin')}: {site.check_in_time} · {t('contact.checkout')}: {site.check_out_time}</li>
         </ul>
       </div>
@@ -41,7 +43,7 @@ const site = await getSiteSettings();
 
     <div class="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row">
       <p>© {year} {site.name}. {t('footer.rights')}</p>
-      <a href={`/admin${q}`} class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">Admin</a>
+      <a href="https://admin.kimura.ekalliptus.com" rel="noopener" class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">Admin</a>
     </div>
   </div>
 </footer>

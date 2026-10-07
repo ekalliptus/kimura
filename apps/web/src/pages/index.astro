@@ -44,7 +44,7 @@ const heroLines = t('hero.title').split('\n');
   <main id="main">
     <!-- ===================== HERO ===================== -->
     <section class="relative overflow-hidden">
-      <div class="absolute inset-0 animate-pulse bg-muted" data-hero-slideshow>
+      <div class="absolute inset-0 animate-pulse bg-muted motion-reduce:animate-none" data-hero-slideshow>
         {
           heroSources.map((src, i) =>
             i === 0 ? (
