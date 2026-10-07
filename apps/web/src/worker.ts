@@ -60,6 +60,15 @@ async function handleImage(request: Request, env: Env): Promise<Response | null>
   return new Response(resized.body, { status: resized.status, headers });
 }
 
+/** Baseline hardening applied to every response (site is framed nowhere). */
+function withSecurityHeaders(res: Response): Response {
+  res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  return res;
+}
+
 /**
  * Custom Worker entry. Astro generates only a `fetch` handler; we wrap it so a
  * `scheduled()` cron can live alongside SSR. `wrangler.jsonc > main` points here.
@@ -67,8 +76,8 @@ async function handleImage(request: Request, env: Env): Promise<Response | null>
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const img = await handleImage(request, env);
-    if (img) return img;
-    return handle(request, env, ctx);
+    if (img) return withSecurityHeaders(img);
+    return withSecurityHeaders(await handle(request, env, ctx));
   },
 
   /**

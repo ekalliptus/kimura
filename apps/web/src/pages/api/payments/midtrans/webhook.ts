@@ -63,9 +63,40 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response('{"error":"amount mismatch"}', { status: 403 });
   }
 
-  const patch: Partial<Database['public']['Tables']['bookings']['Update']> = { status: target };
-  if (target === 'confirmed') patch.confirmed_at = new Date().toISOString();
-  if (target === 'cancelled') patch.cancelled_at = new Date().toISOString();
+  // Confirmation consumes inventory — route through the atomic RPC (same
+  // advisory-lock + capacity re-check as admin confirm) so a wave of settled
+  // payments can never oversell a room type.
+  if (target === 'confirmed') {
+    const { error: rpcErr } = await supabase.rpc('confirm_booking', { p_booking_id: booking.id });
+    if (rpcErr) {
+      const roomFull = rpcErr.message.includes('ROOM_FULL');
+      console.error('[midtrans webhook]', `confirm_booking failed for ${orderId}: ${rpcErr.message}`);
+      // ROOM_FULL: guest paid but inventory is gone — do NOT oversell; the
+      // booking stays pending and staff must resolve (refund/reassign) manually.
+      return new Response(JSON.stringify({ ok: !roomFull }), { status: roomFull ? 200 : 500 });
+    }
+
+    await supabase.from('activity_logs').insert({
+      action: 'booking.payment_confirmed',
+      category: 'booking',
+      message: `Payment ${txnStatus} — booking ${booking.reference} → confirmed (Midtrans)`,
+      actor: 'midtrans',
+      entity_type: 'booking',
+      entity_id: booking.id,
+      metadata: { reference: booking.reference, transaction_status: txnStatus, gross_amount: grossAmount },
+    });
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Cancellation carries no inventory risk — direct pending-guarded update.
+  const patch: Partial<Database['public']['Tables']['bookings']['Update']> = {
+    status: 'cancelled',
+    cancelled_at: new Date().toISOString(),
+  };
 
   // The pending guard is the real idempotency: a replayed/stale webhook, or one
   // racing an admin's manual confirm (confirm_booking takes the row lock first),
