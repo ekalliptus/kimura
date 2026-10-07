@@ -1,6 +1,7 @@
 import type { Route } from './+types/api.images';
 import { getAdminIdentity } from '~/lib/auth.server';
 import { getEnv } from '~/lib/env.server';
+import { sameOrigin } from '~/lib/request.server';
 
 // Allowed source types (kept in sync with the bucket's allowed_mime_types in
 // 0009_room_images_bucket.sql). Client compresses to webp, but HEIC/other
@@ -19,12 +20,7 @@ export async function action({ request }: Route.ActionArgs) {
   const admin = await getAdminIdentity(request);
   if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
-
-  const origin = request.headers.get('Origin');
-  const url = new URL(request.url);
-  if (origin && new URL(origin).host !== url.host) {
-    return Response.json({ error: 'Bad origin' }, { status: 403 });
-  }
+  if (!sameOrigin(request)) return Response.json({ error: 'Bad origin' }, { status: 403 });
 
   const file = (await request.formData()).get('file');
   if (!(file instanceof File)) return Response.json({ error: 'file required' }, { status: 400 });

@@ -17,8 +17,11 @@ const CAT_COLOR: Record<string, string> = {
 };
 
 function ts(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour12: false }) +
-    '.' + String(new Date(iso).getMilliseconds()).padStart(3, '0');
+  // Property time (WIB) with the date — time-only is ambiguous across days.
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) + ' ' +
+    d.toLocaleTimeString('en-GB', { hour12: false, timeZone: 'Asia/Jakarta' }) +
+    '.' + String(d.getMilliseconds()).padStart(3, '0');
 }
 
 /** Live, terminal-style console that tails activity_logs by polling. */

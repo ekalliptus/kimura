@@ -2,7 +2,7 @@ import type { Route } from './+types/dashboard';
 import { Link, data } from 'react-router';
 import { requireAdmin } from '~/lib/auth.server';
 import { t as tr } from '~/lib/admin-i18n';
-import { formatIDR, formatDateTime, STATUS_LABELS } from '@kimura/core/format';
+import { formatIDR, formatDateTime, STATUS_LABELS, todayWIB } from '@kimura/core/format';
 import type { Booking } from '@kimura/core/database.types';
 
 export function meta() {
@@ -12,7 +12,8 @@ export function meta() {
 export async function loader({ request }: Route.LoaderArgs) {
   const { supabase, lang, headers } = await requireAdmin(request);
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Property runs on WIB — UTC "today" miscounts arrivals/departures before 07:00.
+  const today = todayWIB();
   const monthStart = today.slice(0, 8) + '01';
 
   // Counts via head queries (exact, not sampled); recent rows fetched separately.
@@ -70,7 +71,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const { lang, counts, monthValue, keepAlive, recentLogs, recent } = loaderData;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayWIB();
 
   const stats = [
     { label: tr(lang, 'dash.pending'), value: counts.pending, hint: tr(lang, 'dash.pending_hint'), accent: true },

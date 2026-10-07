@@ -136,7 +136,7 @@ export default function ImageUploader({
             <button
               type="button"
               onClick={() => remove(url)}
-              className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-background/80 text-xs text-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+              className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-background/80 text-xs text-foreground opacity-100 transition-opacity hover:text-destructive md:opacity-0 md:group-hover:opacity-100"
               aria-label={tr(lang, 'rm.img_remove')}
             >
               ✕

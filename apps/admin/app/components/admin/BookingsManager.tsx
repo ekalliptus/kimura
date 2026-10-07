@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Booking, BookingStatus, Room, RoomType } from '@kimura/core/database.types';
 import { formatIDR, formatDate, STATUS_LABELS } from '@kimura/core/format';
 import type { AdminLang } from '~/lib/admin-i18n';
@@ -10,16 +10,18 @@ interface Props {
   rooms: Pick<Room, 'id' | 'room_number' | 'room_type_id'>[];
   focusRef?: string;
   lang: AdminLang;
+  /** Loader hit the 1000-row cap — hint the user instead of silently truncating. */
+  capped?: boolean;
 }
 
-export default function BookingsManager({ initialBookings, roomTypes, rooms, focusRef, lang }: Props) {
+export default function BookingsManager({ initialBookings, roomTypes, rooms, focusRef, lang, capped }: Props) {
+  // Derived from core STATUS_LABELS so a new status can't be missed here again.
   const FILTERS: { key: BookingStatus | 'all'; label: string }[] = [
     { key: 'all', label: tr(lang, 'bk.all') },
-    { key: 'pending', label: tr(lang, 'bk.pending') },
-    { key: 'confirmed', label: tr(lang, 'bk.confirmed') },
-    { key: 'checked_in', label: tr(lang, 'bk.checked_in') },
-    { key: 'checked_out', label: tr(lang, 'bk.checked_out') },
-    { key: 'cancelled', label: tr(lang, 'bk.cancelled') },
+    ...(Object.entries(STATUS_LABELS).map(([key, v]) => ({
+      key: key as BookingStatus,
+      label: v[lang],
+    }))),
   ];
 
   // Allowed next states from each status (the manual workflow).
@@ -78,6 +80,16 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
     setTimeout(() => setToast(null), error ? 3500 : 2500);
   }
 
+  // Escape closes the detail drawer (keyboard parity with the backdrop/✕).
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelected(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected]);
+
   async function patch(id: string, body: Record<string, unknown>, okMsg: string, confirmKey?: 'bk.cancel_confirm' | 'bk.noshow_confirm', ref = '') {
     if (confirmKey && !window.confirm(tr(lang, confirmKey).replace('{ref}', ref))) return;
     setBusy(id);
@@ -130,9 +142,13 @@ export default function BookingsManager({ initialBookings, roomTypes, rooms, foc
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={tr(lang, 'bk.search')}
+          aria-label={tr(lang, 'bk.search')}
           className="w-full max-w-xs rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
       </div>
+      {capped && (
+        <p className="text-xs text-muted-foreground">{tr(lang, 'bk.capped')}</p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{tr(lang, 'bk.stay_dates')}</span>
         <input

@@ -3,12 +3,12 @@ import { adminLang } from '~/lib/admin-i18n';
 import { getServerClient } from '~/lib/supabase.server';
 import { serializeCookieHeader } from '@supabase/ssr';
 import { getCookie } from '~/lib/auth.server';
+import { sameOrigin } from '~/lib/request.server';
 
 // POST → toggle admin_lang cookie (id ↔ en). Admins only. Same-origin only.
 export async function action({ request }: Route.ActionArgs) {
   const url = new URL(request.url);
-  const origin = request.headers.get('Origin');
-  if (origin && new URL(origin).host !== url.host) {
+  if (!sameOrigin(request)) {
     return Response.json({ error: 'Bad origin' }, { status: 403 });
   }
 

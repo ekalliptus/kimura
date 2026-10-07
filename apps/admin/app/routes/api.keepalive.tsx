@@ -1,9 +1,11 @@
 import type { Route } from './+types/api.keepalive';
 import { getServerClient, getAdminClient } from '~/lib/supabase.server';
+import { sameOrigin } from '~/lib/request.server';
 
 // POST → manually fire a keep-alive ping (same as the web worker's cron).
 export async function action({ request }: Route.ActionArgs) {
-  const { supabase } = getServerClient(request);
+  if (!sameOrigin(request)) return Response.json({ error: 'Bad origin' }, { status: 403 });
+  const { supabase, headers } = getServerClient(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { data: isAdmin } = await supabase.rpc('is_admin');
@@ -22,5 +24,6 @@ export async function action({ request }: Route.ActionArgs) {
     actor_id: user.id,
   });
   const { data: ka } = await svc.from('keep_alive').select('*').eq('id', 1).maybeSingle();
-  return Response.json({ ok: true, keep_alive: ka, elapsed_ms: Date.now() - start });
+  // Refreshed auth cookies must reach the browser or long-lived tabs drop the session.
+  return Response.json({ ok: true, keep_alive: ka, elapsed_ms: Date.now() - start }, { headers });
 }

@@ -1,7 +1,9 @@
 import type { Route } from './+types/api.auth';
 import { rateLimit, clientIp } from '@kimura/core/ratelimit';
-import { getServerClient } from '~/lib/supabase.server';
+import { getServerClient, getAdminClient } from '~/lib/supabase.server';
 import { sameOrigin } from '~/lib/request.server';
+import { t as tr, adminLang } from '~/lib/admin-i18n';
+import { getCookie } from '~/lib/auth.server';
 
 // POST → sign in (email/password), sets session cookies. DELETE → sign out.
 export async function action({ request }: Route.ActionArgs) {
@@ -47,7 +49,12 @@ export async function action({ request }: Route.ActionArgs) {
   const { supabase, headers } = getServerClient(request);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) {
-    return Response.json({ error: error?.message ?? 'Invalid credentials' }, { status: 401 });
+    // Generic + localized — never echo Supabase's raw message (schema/user
+    // enumeration) to the public login page.
+    return Response.json(
+      { error: tr(adminLang(getCookie(request, 'admin_lang')), 'login.failed') },
+      { status: 401 },
+    );
   }
 
   // Enforce admin allowlist at login (defence in depth). Cookies from signIn are
@@ -58,7 +65,10 @@ export async function action({ request }: Route.ActionArgs) {
     return Response.json({ error: 'This account is not an administrator.' }, { status: 403 });
   }
 
-  await supabase.from('activity_logs').insert({
+  // activity_logs has no anon/authenticated INSERT policy — the audit write must
+  // go through the service-role client or RLS silently drops it.
+  const svc = getAdminClient();
+  await svc.from('activity_logs').insert({
     action: 'auth.login',
     category: 'auth',
     message: `Admin signed in: ${email}`,

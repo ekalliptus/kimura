@@ -110,6 +110,10 @@ const STRINGS = {
     en: 'Mark {ref} as a no-show? The guest is treated as not arriving.',
   },
   'bk.no_match': { id: 'Tidak ada reservasi cocok.', en: 'No bookings match.' },
+  'bk.capped': {
+    id: 'Menampilkan 1.000 reservasi terbaru — persempit filter untuk mencari sisanya.',
+    en: 'Showing the latest 1,000 bookings — narrow the filters to find older ones.',
+  },
   'bk.stay_dates': { id: 'Rentang tanggal', en: 'Stay dates' },
   'bk.clear_dates': { id: 'Hapus', en: 'Clear' },
   'bk.copy_ref': { id: 'Salin kode booking', en: 'Copy booking reference' },

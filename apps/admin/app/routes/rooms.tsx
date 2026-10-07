@@ -1,4 +1,5 @@
 import type { Route } from './+types/rooms';
+import { data } from 'react-router';
 import { requireAdmin } from '~/lib/auth.server';
 import RoomsManager from '~/components/admin/RoomsManager';
 import type { Room, RoomType } from '@kimura/core/database.types';
@@ -13,8 +14,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     supabase.from('room_types').select('*').order('sort_order'),
     supabase.from('rooms').select('*').order('room_number'),
   ]);
+  // A DB outage must not render as "no inventory".
+  if (rtRes.error || roomsRes.error) {
+    throw data('Failed to load rooms', 500);
+  }
   return Response.json(
-    { lang, roomTypes: (rtRes.data ?? []) as RoomType[], rooms: (roomsRes.data ?? []) as Room[] },
+    { lang, roomTypes: rtRes.data as RoomType[], rooms: roomsRes.data as Room[] },
     { headers },
   );
 }

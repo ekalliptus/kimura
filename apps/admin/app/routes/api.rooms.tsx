@@ -42,15 +42,17 @@ export async function action({ request }: Route.ActionArgs) {
       };
 
       const row = {
-        name,
-        slug,
-        name_id: String(body.name_id ?? '').trim() || name,
-        description: String(body.description ?? '').trim() || null,
-        description_id: String(body.description_id ?? '').trim() || null,
+        name: name.slice(0, 120),
+        slug: slug.slice(0, 80),
+        name_id: (String(body.name_id ?? '').trim() || name).slice(0, 120),
+        description: String(body.description ?? '').trim().slice(0, 2000) || null,
+        description_id: String(body.description_id ?? '').trim().slice(0, 2000) || null,
         size_sqm: price(body.size_sqm),
         max_occupancy: Math.max(1, Math.round(Number(body.max_occupancy) || 2)),
-        bed_config: String(body.bed_config ?? '').trim() || null,
-        amenities: Array.isArray(body.amenities) ? (body.amenities as string[]).map((a) => a.trim()).filter(Boolean) : [],
+        bed_config: String(body.bed_config ?? '').trim().slice(0, 120) || null,
+        amenities: Array.isArray(body.amenities)
+          ? (body.amenities as string[]).map((a) => a.trim().slice(0, 80)).filter(Boolean).slice(0, 20)
+          : [],
         images: Array.isArray(body.images) ? (body.images as string[]).map((a) => a.trim()).filter(Boolean).slice(0, 12) : [],
         price_half_day: price(body.price_half_day),
         price_daily: price(body.price_daily),
@@ -75,7 +77,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     // kind === 'room'
-    const room_number = String(body.room_number ?? '').trim();
+    const room_number = String(body.room_number ?? '').trim().slice(0, 20);
     const room_type_id = String(body.room_type_id ?? '').trim();
     if (!room_number) return Response.json({ error: 'room_number is required' }, { status: 400 });
     if (!room_type_id) return Response.json({ error: 'room_type_id is required' }, { status: 400 });
